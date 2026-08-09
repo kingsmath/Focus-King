@@ -1,0 +1,2228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title id="seoTitleTag">포커스킹 FOCUS KING</title>
+<meta name="description" id="seoDescTag" content="여러 명이 동시에 즐기는 스포트라이트 정답 맞히기 게임, 포커스킹!">
+<meta name="keywords" id="seoKeywordsTag" content="포커스킹,전자칠판 게임,스포트라이트 게임,교육용 게임">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" referrerpolicy="no-referrer" crossorigin="anonymous">
+<style>
+  :root{
+    --bg-deep:#12143a;
+    --bg-panel:#1a1d54;
+    --bg-panel-2:#212463;
+    --gold:#f4c94c;
+    --gold-soft:#f9dd8a;
+    --teamA:#ff6b5c;
+    --teamA-dim:#5a2521;
+    --teamB:#3fc1e9;
+    --teamB-dim:#1c4a58;
+    --ink:#f5f3ff;
+    --ink-dim:#9a9cc9;
+    --danger:#ff4d4d;
+    --ok:#57e08a;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:#05061a;
+    overflow:hidden;
+    font-family:'Gowun Dodum','Apple SD Gothic Neo',sans-serif;
+    -webkit-user-select:none; user-select:none;
+    -webkit-user-drag:none;
+    touch-action:none;
+    overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  /* 전자칠판/멀티터치 환경 보정: 드래그·롱프레스 메뉴·확대 제스처 차단 (게임 디자인과 무관한 전역 보정) */
+  *{ -webkit-tap-highlight-color:transparent; }
+  img, svg{ -webkit-user-drag:none; -webkit-touch-callout:none; }
+  .display{font-family:'Jua','Apple SD Gothic Neo',sans-serif;}
+
+  #viewport{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:
+      radial-gradient(ellipse at 50% -10%, #2a2f7a 0%, #05061a 60%);
+  }
+  #stage{
+    position:relative;
+    width:100vw; height:56.25vw; /* 16:9 */
+    max-height:100vh; max-width:177.78vh;
+    background:linear-gradient(180deg,var(--bg-deep),#0b0c2c);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 0 0 2px rgba(244,201,76,.25), 0 40px 80px rgba(0,0,0,.6);
+  }
+
+  /* ---------- top overlay bar: 좌20% 홈/옵션, 가운데60% 상태, 우20% 전체화면 ---------- */
+  #topbar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; align-items:flex-start; justify-content:space-between;
+    padding:8px 10px;
+    z-index:150;
+    pointer-events:none;
+  }
+  #topbar .zone{display:flex; align-items:center; pointer-events:none;}
+  #topbar .zone.left{width:20%; justify-content:flex-start;}
+  #topbar .zone.center{flex:1; justify-content:center; gap:14px;}
+  #topbar .zone.right{width:20%; justify-content:flex-end;}
+  #topbar .pill{
+    pointer-events:auto;
+    background:rgba(5,6,26,.55);
+    border:1px solid rgba(244,201,76,.35);
+    backdrop-filter:blur(4px);
+    border-radius:999px;
+    padding:6px 16px;
+    display:flex; align-items:center; gap:8px;
+    color:var(--ink);
+  }
+  #crownmark{font-size:1.1em; filter:drop-shadow(0 0 6px rgba(244,201,76,.6));}
+  #roundLabel{font-size:.95em; color:var(--gold-soft); letter-spacing:.02em;}
+  #timerPill{font-family:'Jua'; font-size:1.5em; min-width:2.4em; text-align:center; color:var(--ink);}
+  #timerPill.warn{color:var(--danger); animation:pulse .5s infinite alternate;}
+  @keyframes pulse{from{transform:scale(1);}to{transform:scale(1.12);}}
+
+  .iconbtn{
+    pointer-events:auto;
+    background:rgba(5,6,26,.55);
+    border:1px solid rgba(244,201,76,.35);
+    backdrop-filter:blur(4px);
+    border-radius:999px;
+    width:clamp(32px,4.2vw,44px); height:clamp(32px,4.2vw,44px);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink); font-size:clamp(15px,2vw,19px);
+    cursor:pointer;
+    margin-top:clamp(38px,5vw,54px); /* 우측 언어 선택 버튼과 겹치지 않도록 상단에서 아래로 내림 */
+  }
+  .iconbtn:active{transform:scale(.9);}
+
+  /* ---------- main 3-column layout ---------- */
+  #mainrow{position:absolute; inset:0; display:flex;}
+  .panel{
+    width:50%; height:100%;
+    display:flex; flex-direction:column;
+    background:linear-gradient(180deg,var(--bg-panel),var(--bg-panel-2));
+  }
+  .panel.right{border-left:1px solid rgba(244,201,76,.15);}
+  .panel.left{border-right:1px solid rgba(244,201,76,.15);}
+
+  .teamzone{
+    flex:0 0 auto;
+    display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:center;
+    gap:8px 18px; position:relative;
+    padding:8px 14px;
+    border-bottom:1px dashed rgba(244,201,76,.18);
+  }
+  .teamzone .teamname{
+    font-family:'Jua'; font-size:clamp(14px,2.1vw,22px);
+    color:var(--ink);
+    display:flex; align-items:center; gap:6px;
+    max-width:100%;
+  }
+  .teamzone.A .teamname{color:var(--teamA);}
+  .teamzone.B .teamname{color:var(--teamB);}
+  .teamzone .score{
+    font-family:'Jua'; font-size:clamp(26px,4.2vw,44px);
+    color:var(--ink);
+    line-height:1;
+  }
+  .crownrow{display:flex; gap:4px; flex-wrap:wrap; justify-content:center; max-width:90%;}
+  .crownrow span{font-size:clamp(11px,1.5vw,16px); opacity:.28;}
+  .crownrow span.won{opacity:1; filter:drop-shadow(0 0 4px rgba(244,201,76,.8));}
+
+  .penalty{
+    position:absolute; inset:0;
+    background:rgba(5,6,26,.72);
+    display:none;
+    align-items:center; justify-content:center;
+    flex-direction:column; gap:2px;
+    color:var(--danger);
+    font-family:'Jua';
+    z-index:5;
+  }
+  .penalty.show{display:flex;}
+  .penalty .big{font-size:clamp(24px,3.6vw,34px);}
+  .penalty .small{font-family:'Gowun Dodum'; font-size:clamp(10px,1.4vw,13px); color:var(--ink-dim);}
+
+  /* ---------- 보기(정답 버튼) 영역: 납작하게 ---------- */
+  .answers{
+    flex:0 0 16%;
+    display:grid; grid-template-rows:repeat(2,1fr);
+    gap:4px; padding:6px 8px;
+  }
+  .ansbtn{
+    border:none; border-radius:8px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.12);
+    color:var(--ink);
+    font-family:'Gowun Dodum';
+    font-size:clamp(8px,1vw,12px);
+    display:flex; align-items:center; justify-content:center;
+    text-align:center; padding:2px 3px;
+    cursor:pointer;
+    transition:transform .08s ease, background .15s ease;
+    line-height:1.15;
+  }
+  .panel.left .ansbtn:active{transform:scale(.94); background:var(--teamA-dim);}
+  .panel.right .ansbtn:active{transform:scale(.94); background:var(--teamB-dim);}
+  .ansbtn.correct{background:var(--ok); color:#08300f; font-weight:bold; border-color:var(--ok);}
+  .ansbtn.wrong{background:var(--danger); color:#3a0505; animation:shake .3s;}
+  .ansbtn:disabled{opacity:.35; cursor:default;}
+  @keyframes shake{
+    0%,100%{transform:translateX(0);} 25%{transform:translateX(-4px);}
+    75%{transform:translateX(4px);}
+  }
+
+  /* ---------- per-team wide photo area: 아래쪽으로 내려서 배치 ---------- */
+  .photowrap{
+    flex:1 1 auto;
+    width:100%;
+    display:flex; align-items:flex-end; justify-content:center;
+    padding:6px 16px 10px;
+  }
+  .stagebox{
+    position:relative;
+    width:100%;
+    aspect-ratio:16/9;
+    max-height:100%;
+    border-radius:12px;
+    overflow:hidden;
+    touch-action:none;
+    background:#0c0e2c;
+    box-shadow:0 0 0 3px rgba(255,255,255,.08), 0 10px 26px rgba(0,0,0,.45);
+  }
+  .photowrap.A .stagebox{box-shadow:0 0 0 3px rgba(255,107,92,.55), 0 10px 26px rgba(0,0,0,.45);}
+  .photowrap.B .stagebox{box-shadow:0 0 0 3px rgba(63,193,233,.55), 0 10px 26px rgba(0,0,0,.45);}
+  .photo-layer{position:absolute; inset:0; width:100%; height:100%; background:#0c0e2c;}
+  .photo-layer img{width:100%; height:100%; object-fit:contain; display:block; pointer-events:none;}
+  .mask-canvas{position:absolute; inset:0; width:100%; height:100%;}
+  .revealed-tag{
+    position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
+    background:rgba(5,6,26,.7); color:var(--gold-soft); font-family:'Jua';
+    font-size:clamp(11px,1.6vw,16px); padding:3px 12px; border-radius:999px;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+  }
+  .revealed-tag.show{opacity:1;}
+  .title-tag{
+    position:absolute; top:8px; left:50%; transform:translateX(-50%);
+    max-width:92%;
+    background:rgba(5,6,26,.78); color:var(--gold); font-family:'Jua';
+    font-size:clamp(14px,2.8vw,30px); padding:6px 18px; border-radius:12px;
+    opacity:0; transition:opacity .3s; pointer-events:none;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    box-shadow:0 4px 16px rgba(0,0,0,.45);
+    z-index:6;
+  }
+  .title-tag.show{opacity:1;}
+  .winglow{position:absolute; inset:-3px; border-radius:14px; opacity:0; pointer-events:none;
+    transition:opacity .3s; box-shadow:0 0 0 4px var(--ok), 0 0 30px 6px var(--ok);}
+  .winglow.show{opacity:1;}
+
+  /* ---------- setup overlay ---------- */
+  #setup{
+    position:absolute; inset:0; z-index:100;
+    background:radial-gradient(ellipse at 50% 0%,#2a2f7a 0%,#0b0c2c 65%);
+    display:flex; align-items:center; justify-content:center;
+    padding:14px;
+  }
+  #setupInner{
+    width:100%; max-height:100%;
+    overflow-y:auto; touch-action:pan-y;
+    display:flex; flex-direction:column; align-items:center;
+    gap:12px; padding:8px 6px 20px; text-align:center;
+  }
+  #setup h1{
+    font-family:'Jua'; color:var(--gold); font-size:clamp(24px,4.6vw,46px);
+    margin:0; letter-spacing:.02em;
+    text-shadow:0 0 26px rgba(244,201,76,.45);
+  }
+  #setup .sub{color:var(--ink-dim); font-size:clamp(11px,1.5vw,15px); margin-top:-6px;}
+  #setup .sectitle{color:var(--gold-soft); font-family:'Jua'; font-size:clamp(12px,1.6vw,16px); margin-bottom:2px;}
+  .nameinputs{display:flex; gap:16px; align-items:center; flex-wrap:wrap; justify-content:center;}
+  .nameinputs input{
+    font-family:'Jua'; font-size:clamp(14px,2vw,20px);
+    text-align:center; padding:7px 12px; border-radius:10px; border:2px solid;
+    background:rgba(255,255,255,.06); color:var(--ink); width:clamp(100px,16vw,200px);
+  }
+  .nameinputs input.A{border-color:var(--teamA); color:var(--teamA);}
+  .nameinputs input.B{border-color:var(--teamB); color:var(--teamB);}
+  .vsmark{font-family:'Jua'; color:var(--gold); font-size:clamp(16px,2.4vw,24px);}
+
+  .chipgroup{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:min(900px,92vw);}
+  .chipgroup button{
+    font-family:'Jua'; font-size:clamp(11px,1.5vw,15px);
+    color:var(--ink); background:rgba(255,255,255,.06);
+    border:2px solid rgba(244,201,76,.4); border-radius:12px;
+    padding:7px 13px; cursor:pointer;
+    display:flex; align-items:center; gap:5px;
+  }
+  .chipgroup button.sel{background:var(--gold); color:#3a2b03; border-color:var(--gold);}
+  .chipgroup button.wide{font-size:clamp(11px,1.6vw,15px);}
+
+  #startbtn{
+    font-family:'Jua'; font-size:clamp(16px,2.4vw,24px);
+    background:linear-gradient(180deg,var(--gold-soft),var(--gold));
+    color:#3a2b03; border:none; border-radius:14px; padding:12px 36px;
+    cursor:pointer; margin-top:4px;
+    box-shadow:0 8px 0 #a3781f, 0 14px 24px rgba(0,0,0,.4);
+  }
+  #startbtn:active{transform:translateY(6px); box-shadow:0 2px 0 #a3781f;}
+
+  /* ---------- round / match end overlay ---------- */
+  #banner{
+    position:absolute; inset:0; z-index:90;
+    display:none; align-items:center; justify-content:center;
+    background:rgba(5,6,26,.55);
+  }
+  #banner.show{display:flex;}
+  #banner .box{
+    background:linear-gradient(180deg,var(--bg-panel),var(--bg-panel-2));
+    border:2px solid var(--gold);
+    border-radius:18px; padding:26px 40px; text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
+  }
+  #banner .headline{font-family:'Jua'; font-size:clamp(26px,4.4vw,42px); color:var(--gold); margin-bottom:6px;}
+  #banner .detail{color:var(--ink-dim); font-size:clamp(12px,1.8vw,16px); margin-bottom:14px;}
+  #banner button{
+    font-family:'Jua'; font-size:clamp(14px,2vw,18px);
+    background:var(--gold); color:#3a2b03; border:none; border-radius:10px;
+    padding:10px 24px; cursor:pointer;
+  }
+  #banner .autonext{color:var(--ink-dim); font-size:clamp(10px,1.4vw,13px); margin-top:10px; min-height:1.2em;}
+
+  /* ---------- 시작 전 3·2·1 카운트다운 ---------- */
+  #countdown{
+    position:absolute; inset:0; z-index:95;
+    display:none; align-items:center; justify-content:center;
+    background:rgba(5,6,26,.62);
+    pointer-events:none;
+  }
+  #countdown.show{display:flex;}
+  .cd-number{
+    font-family:'Jua'; color:var(--gold);
+    font-size:clamp(60px,16vw,180px);
+    text-shadow:0 0 40px rgba(244,201,76,.65), 0 8px 0 rgba(0,0,0,.35);
+    opacity:0;
+  }
+  .cd-number.pop{animation:cdpop .7s cubic-bezier(.2,.9,.3,1.3);}
+  @keyframes cdpop{
+    0%{opacity:0; transform:scale(.4);}
+    35%{opacity:1; transform:scale(1.15);}
+    60%{transform:scale(1);}
+    100%{opacity:0; transform:scale(1);}
+  }
+</style>
+
+<!-- ==========================================================================
+     언어 선택 UI 전용 스타일시트 (게임 CSS와 완전히 분리, 클래스는 전부 lm- 접두사)
+     - 게임 쪽 스타일과 절대 공유되는 선택자가 없도록 독립 운영합니다.
+     - 폰트어썸 아이콘(<i class="fa-...">)에는 sans-serif를 강제하지 않습니다 (깨짐 방지).
+     ========================================================================== -->
+<style id="lmStyles">
+  #lmTrigger, #lmTrigger *,
+  #lmModal, #lmModal *,
+  #lmToast, #lmToast *{
+    box-sizing:border-box !important;
+  }
+
+  #lmTrigger{
+    position:fixed; top:12px; right:12px; z-index:99999;
+    display:flex; align-items:center; gap:8px;
+    background:rgba(17,20,34,.82);
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:999px;
+    padding:8px 14px;
+    color:#e9ebf5;
+    font-family:-apple-system,'Segoe UI',Roboto,'Noto Sans','Helvetica Neue',Arial,sans-serif;
+    font-size:13px;
+    cursor:pointer;
+    backdrop-filter:blur(6px);
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+    transition:background .15s ease, transform .1s ease;
+  }
+  #lmTrigger:hover{background:rgba(30,34,54,.92);}
+  #lmTrigger:active{transform:scale(.96);}
+  #lmTrigger .lm-globe{color:#9aa0c0; font-size:14px;}
+  #lmTrigger .lm-flag{width:20px; height:14px; object-fit:cover; border-radius:2px; box-shadow:0 0 0 1px rgba(255,255,255,.15); flex:0 0 auto;}
+  #lmTrigger .lm-curname{max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  #lmTrigger .lm-chev{color:#9aa0c0; font-size:10px;}
+  #lmTrigger.lm-hidden{display:none !important;}
+
+  #lmModal{
+    position:fixed; inset:0; z-index:99999;
+    display:flex; align-items:flex-start; justify-content:center;
+    padding:64px 16px 16px;
+    background:rgba(4,5,12,.68);
+    backdrop-filter:blur(3px);
+    opacity:0; visibility:hidden;
+    transition:opacity .2s ease, visibility .2s ease;
+    font-family:-apple-system,'Segoe UI',Roboto,'Noto Sans','Helvetica Neue',Arial,sans-serif;
+  }
+  #lmModal.lm-active{opacity:1; visibility:visible;}
+  @media (min-width:640px){ #lmModal{ align-items:center; padding:16px; } }
+
+  #lmModal .lm-content{
+    width:100%; max-width:760px; max-height:82vh;
+    display:flex; flex-direction:column;
+    background:#12141f;
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 30px 70px rgba(0,0,0,.55);
+    transform:scale(.96) translateY(-8px);
+    transition:transform .2s ease;
+  }
+  #lmModal.lm-active .lm-content{transform:scale(1) translateY(0);}
+
+  #lmModal .lm-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 18px; border-bottom:1px solid rgba(255,255,255,.08);
+    background:#12141f;
+  }
+  #lmModal .lm-title{margin:0; font-size:17px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;}
+  #lmModal .lm-title i{color:#f4c94c;}
+  #lmModal .lm-closebtn{
+    width:34px; height:34px; border-radius:999px; border:none;
+    background:rgba(255,255,255,.08); color:#c7cad8;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    font-size:14px;
+  }
+  #lmModal .lm-closebtn:hover{background:rgba(255,255,255,.16); color:#fff;}
+
+  #lmModal .lm-searchwrap{position:relative; padding:14px 18px 6px;}
+  #lmModal .lm-searchicon{position:absolute; left:32px; top:50%; transform:translateY(-50%); color:#7d8199; font-size:13px;}
+  #lmModal .lm-searchinput{
+    width:100%; padding:11px 14px 11px 36px;
+    background:#1b1e2c; border:1px solid rgba(255,255,255,.14); border-radius:12px;
+    color:#fff; font-size:13px; outline:none;
+  }
+  #lmModal .lm-searchinput:focus{border-color:#f4c94c; box-shadow:0 0 0 2px rgba(244,201,76,.25);}
+  #lmModal .lm-searchinput::placeholder{color:#6b6f88;}
+
+  #lmModal .lm-body{padding:14px 18px 18px; overflow-y:auto; flex:1;}
+  #lmModal .lm-body::-webkit-scrollbar{width:8px;}
+  #lmModal .lm-body::-webkit-scrollbar-track{background:rgba(255,255,255,.04); border-radius:4px;}
+  #lmModal .lm-body::-webkit-scrollbar-thumb{background:#3a3e54; border-radius:4px;}
+  #lmModal .lm-body::-webkit-scrollbar-thumb:hover{background:#4c5170;}
+
+  #lmModal .lm-grid{display:grid; grid-template-columns:repeat(1,1fr); gap:8px;}
+  @media (min-width:520px){ #lmModal .lm-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (min-width:860px){ #lmModal .lm-grid{grid-template-columns:repeat(3,1fr);} }
+
+  #lmModal .lm-card{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px; border-radius:12px;
+    border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03);
+    cursor:pointer; transition:background .15s ease, border-color .15s ease;
+  }
+  #lmModal .lm-card:hover{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.22);}
+  #lmModal .lm-card.lm-selected{background:rgba(244,201,76,.1); border-color:#f4c94c;}
+  #lmModal .lm-card .lm-cardflag{width:30px; height:22px; object-fit:cover; border-radius:3px; box-shadow:0 0 0 1px rgba(255,255,255,.15); flex:0 0 auto;}
+  #lmModal .lm-card .lm-cardtext{min-width:0; flex:1; display:flex; flex-direction:column;}
+  #lmModal .lm-card .lm-cardname{color:#fff; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #lmModal .lm-card.lm-selected .lm-cardname{color:#f4c94c;}
+  #lmModal .lm-card .lm-cardsub{color:#8b8fa8; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #lmModal .lm-card .lm-check{color:#f4c94c; font-size:15px; margin-left:auto; flex:0 0 auto;}
+
+  #lmModal .lm-noresult{display:none; flex-direction:column; align-items:center; justify-content:center; padding:40px 10px; color:#6b6f88; text-align:center;}
+  #lmModal .lm-noresult.lm-show{display:flex;}
+  #lmModal .lm-noresult i{font-size:30px; margin-bottom:8px;}
+
+  #lmToast{
+    position:fixed; bottom:18px; right:18px; z-index:99999;
+    display:flex; align-items:center; gap:10px;
+    background:#181b28; border:1px solid rgba(255,255,255,.12); border-radius:14px;
+    padding:12px 16px; box-shadow:0 14px 30px rgba(0,0,0,.4);
+    font-family:-apple-system,'Segoe UI',Roboto,'Noto Sans','Helvetica Neue',Arial,sans-serif;
+    transform:translateY(120%); opacity:0;
+    transition:transform .25s ease, opacity .25s ease;
+    max-width:min(320px,80vw);
+  }
+  #lmToast.lm-show{transform:translateY(0); opacity:1;}
+  #lmToast .lm-toasticon{
+    width:28px; height:28px; border-radius:999px; flex:0 0 auto;
+    background:rgba(87,224,138,.18); color:#57e08a;
+    display:flex; align-items:center; justify-content:center; font-size:12px;
+  }
+  #lmToast .lm-toastmsg{margin:0; color:#fff; font-size:13px; font-weight:600;}
+  #lmToast .lm-toastsub{margin:2px 0 0; color:#8b8fa8; font-size:11px;}
+
+  /* 번역 문구가 버튼 폭을 넘지 않도록 동적 축소되는 요소 표시(자바스크립트가 font-size를 직접 조정) */
+  .lm-autofit{white-space:nowrap;}
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage">
+
+    <div id="topbar">
+      <div class="zone left">
+        <button class="iconbtn" id="homebtn" title="처음으로 (옵션 다시 고르기)">🏠</button>
+      </div>
+      <div class="zone center">
+        <div class="pill"><span id="crownmark">👑</span><span id="roundLabel">1라운드</span></div>
+        <div class="pill"><span id="timerPill">30</span></div>
+      </div>
+      <div class="zone right">
+        <button class="iconbtn" id="fsbtn" title="전체화면">⛶</button>
+      </div>
+    </div>
+
+    <div id="mainrow">
+      <div class="panel left">
+        <div class="teamzone A">
+          <div class="teamname" id="nameA">🔴 레드팀</div>
+          <div class="score" id="scoreA">0</div>
+          <div class="crownrow" id="crownsA"></div>
+          <div class="penalty" id="penaltyA"><div class="big" id="penaltyTimeA">5</div><div class="small">잠시 후 다시 도전!</div></div>
+        </div>
+        <div class="photowrap A">
+          <div class="stagebox" id="stageA">
+            <div class="photo-layer" id="photoA"></div>
+            <canvas class="mask-canvas" id="maskA"></canvas>
+            <div class="winglow" id="glowA"></div>
+            <div class="title-tag" id="titleA"></div>
+            <div class="revealed-tag" id="tagA">정답!</div>
+          </div>
+        </div>
+        <div class="answers" id="answersA"></div>
+      </div>
+
+      <div class="panel right">
+        <div class="teamzone B">
+          <div class="teamname" id="nameB">🔵 블루팀</div>
+          <div class="score" id="scoreB">0</div>
+          <div class="crownrow" id="crownsB"></div>
+          <div class="penalty" id="penaltyB"><div class="big" id="penaltyTimeB">5</div><div class="small">잠시 후 다시 도전!</div></div>
+        </div>
+        <div class="photowrap B">
+          <div class="stagebox" id="stageB">
+            <div class="photo-layer" id="photoB"></div>
+            <canvas class="mask-canvas" id="maskB"></canvas>
+            <div class="winglow" id="glowB"></div>
+            <div class="title-tag" id="titleB"></div>
+            <div class="revealed-tag" id="tagB">정답!</div>
+          </div>
+        </div>
+        <div class="answers" id="answersB"></div>
+      </div>
+    </div>
+
+    <div id="banner">
+      <div class="box">
+        <div class="headline" id="bannerHead"></div>
+        <div class="detail" id="bannerDetail"></div>
+        <button id="bannerBtn">다음 라운드</button>
+        <div class="autonext" id="bannerAuto"></div>
+      </div>
+    </div>
+
+    <div id="countdown">
+      <div class="cd-number" id="cdNumber">3</div>
+    </div>
+
+    <div id="setup">
+      <div id="setupInner">
+        <h1><span aria-hidden="true">👑</span> <span id="appTitleMain">포커스킹</span> <span id="appTitleSub" style="font-size:.55em; color:var(--ink-dim); font-family:'Gowun Dodum';">FOCUS KING</span></h1>
+        <div class="sub" id="setupSub">내 사진을 스포트라이트로 밝혀서 먼저 정답을 맞히세요!</div>
+
+        <div class="nameinputs">
+          <input class="A" id="inputA" value="🔴 레드팀" maxlength="10">
+          <span class="vsmark">VS</span>
+          <input class="B" id="inputB" value="🔵 블루팀" maxlength="10">
+        </div>
+
+        <div>
+          <div class="sectitle" id="catSectionTitle">🗂 어떤 주제로 맞힐까요? (선택 / 전체 랜덤)</div>
+          <div class="chipgroup" id="categoryPick"></div>
+        </div>
+
+        <div>
+          <div class="sectitle" id="modeSectionTitle">🎮 게임 방식</div>
+          <div class="chipgroup" id="modePick">
+            <button data-mode="timeattack" class="sel wide">⏱ 타임어택 (60초)</button>
+            <button data-mode="match" class="wide">🏆 라운드 대결 (선승제)</button>
+          </div>
+        </div>
+
+        <div id="formatWrap" style="display:none;">
+          <div class="sectitle" id="fmtSectionTitle">몇 승을 먼저 하면 이길까요?</div>
+          <div class="chipgroup" id="formatPick">
+            <button data-n="1">1승</button>
+            <button data-n="2">2승</button>
+            <button data-n="3" class="sel">3승</button>
+            <button data-n="5">5승</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="sectitle" id="diffSectionTitle">🎯 난이도</div>
+          <div class="chipgroup" id="diffPick">
+            <button data-d="easy">쉬움</button>
+            <button data-d="normal" class="sel">보통</button>
+            <button data-d="hard">어려움</button>
+          </div>
+        </div>
+
+        <button id="startbtn">게임 시작</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==========================================================================
+     언어 선택 UI (게임 요소와 완전히 분리된 별도 컴포넌트)
+     설정 화면에서만 노출되며, 게임 진행 화면에서는 JS로 숨겨집니다.
+     ========================================================================== -->
+<button id="lmTrigger" type="button" aria-label="Language / 언어 선택">
+  <i class="fa-solid fa-globe lm-globe" aria-hidden="true"></i>
+  <img id="lmCurrentFlag" class="lm-flag" src="https://flagcdn.com/w40/kr.png" alt="" onerror="this.style.visibility='hidden'">
+  <span id="lmCurrentName" class="lm-curname lm-autofit">한국어</span>
+  <i class="fa-solid fa-chevron-down lm-chev" aria-hidden="true"></i>
+</button>
+
+<div id="lmModal" aria-hidden="true">
+  <div class="lm-content" role="dialog" aria-modal="true" aria-labelledby="lmModalTitle">
+    <div class="lm-head">
+      <h2 class="lm-title" id="lmModalTitle"><i class="fa-solid fa-language" aria-hidden="true"></i><span>Language / 언어</span></h2>
+      <button id="lmClose" class="lm-closebtn" type="button" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="lm-searchwrap">
+      <i class="fa-solid fa-magnifying-glass lm-searchicon" aria-hidden="true"></i>
+      <input type="text" id="lmSearch" class="lm-searchinput" placeholder="Search / 검색 ..." autocomplete="off">
+    </div>
+    <div class="lm-body">
+      <div id="lmGrid" class="lm-grid"></div>
+      <div id="lmNoResult" class="lm-noresult">
+        <i class="fa-regular fa-face-frown-open" aria-hidden="true"></i>
+        <p>No results / 검색 결과 없음</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="lmToast" role="status" aria-live="polite">
+  <div class="lm-toasticon"><i class="fa-solid fa-check" aria-hidden="true"></i></div>
+  <div>
+    <p id="lmToastMsg" class="lm-toastmsg">언어가 변경되었습니다.</p>
+    <p id="lmToastLang" class="lm-toastsub">한국어</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================================
+     카테고리 데이터
+     각 폴더의 실제 이미지 파일명을 그대로 사용합니다.
+     파일명이 곧 정답이 되므로, 밑줄(_)이 섞인 원본 파일명은 아래에서
+     보기 좋은 한글 이름으로 다시 목록화했습니다.
+     ========================================================================= */
+
+  // ---- 개구리·양서류 (파일명이 곧 이름이라 그대로 사용) ----
+  const FROG_FILES = [
+    "계곡산개구리.png","금개구리.png","도롱뇽.png","두꺼비.png","맹꽁이.png",
+    "무당개구리.png","수원청개구리.png","양산꼬리치레도롱뇽.png","옴개구리.png",
+    "제주도롱뇽.png","참개구리.png","청개구리.png","큰산개구리.png","한국산개구리.png","황소개구리.png"
+  ];
+
+  // ---- 동물 (파일명이 곧 이름이라 그대로 사용) ----
+  const ANIMAL_FILES = [
+    "개구리.jpg","고래.jpg","고슴도치.jpg","고양이.jpg","공작.jpg","금붕어.jpg","기린.jpg","꿀벌.jpg",
+    "나무늘보.jpg","나비.jpg","낙타.jpg","너구리.jpg","다람쥐.jpg","달팽이.jpg","닭.jpg","돌고래.jpg",
+    "말.jpg","무당벌레.jpg","문어.jpg","미어캣.jpg","바다거북.jpg","바둑이.webp","북극곰.jpg","사슴.jpg",
+    "사슴벌레.jpg","사자.jpg","상어.jpg","수달.jpg","앵무새.jpg","양.jpg","여우.jpg","오징어.jpg",
+    "잠자리.jpg","청둥오리.jpg","침팬지.jpg","캥거루.jpg","코끼리.jpg","코뿔소.jpg","코알라.jpg","토끼.jpg",
+    "팬더.jpg","펭귄.jpg","표범.jpg","해파리.jpg","호랑이.jpg","홍학.jpg"
+  ];
+
+  // ---- 식물 (파일명이 곧 이름이라 그대로 사용) ----
+  const PLANT_FILES = [
+    "감.webp","강아지풀.webp","개나리.webp","개망초.webp","괭이밥.webp","국화.webp","귤.webp","단풍나무.webp",
+    "대나무.webp","무.webp","민들레.webp","배롱나무.webp","백일홍.webp","벚꽃나무.webp","보리.webp","봉선화.webp",
+    "붓꽃.webp","비비추.webp","사과나무.webp","산딸기.webp","소나무.webp","수국.webp","수박.webp","수수.webp",
+    "쑥.webp","연꽃.webp","은행나무.webp","제비꽃.webp","조.webp","진달래.webp","질경이.webp","채송화.webp",
+    "콩.webp","토끼풀.webp","토마토.webp","패랭이.webp","포도.webp","해바라기.webp"
+  ];
+
+  // ---- 명화: 파일명 → 표시 이름(작품명 + 화가) 목록 ----
+  const ART_LABELS = {
+    "960px-The_Night_Watch_-_HD.jpg": "야경 (렘브란트)",
+    "A_Sunday_on_La_Grande_Jatte,_Georges_Seurat,_1884.jpg": "그랑드 자트 섬의 일요일 오후 (쇠라)",
+    "Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg": "안개 바다 위의 방랑자 (프리드리히)",
+    "Claude_Monet_-_Water_Lilies_-_Google_Art_Project.jpg": "수련 (모네)",
+    "Creación_de_Adán.jpg": "아담의 창조 (미켈란젤로)",
+    "Danwon-Ssireum.jpg": "씨름 (김홍도)",
+    "Edgar_Degas_-_The_Star_-_Google_Art_Project.jpg": "별 (드가)",
+    "Edvard_Munch_-_The_Scream_-_Google_Art_Project.jpg": "절규 (뭉크)",
+    "Eugène_Delacroix_-_Le_28_Juillet._La_Liberté_guidant_le_peuple.jpg": "민중을 이끄는 자유의 여신 (들라크루아)",
+    "Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg": "아메리칸 고딕 (그랜트 우드)",
+    "Gustave_Caillebotte_-_Paris_Street;_Rainy_Day_-_Google_Art_Project.jpg": "파리의 거리, 비 오는 날 (카유보트)",
+    "Hans_Holbein_the_Younger_-_The_Ambassadors_-_Google_Art_Project.jpg": "대사들 (홀바인)",
+    "Jean-François_Millet_-_Gleaners_-_Google_Art_Project_2.jpg": "이삭 줍는 사람들 (밀레)",
+    "John_Constable_-_The_Hay_Wain.jpg": "건초 마차 (컨스터블)",
+    "Joseph.jpg": "눈보라 - 항구 어귀의 증기선 (터너)",
+    "Las_Meninas,_by_Diego_Velázquez,_from_Prado_in_Google_Earth.jpg": "시녀들 (벨라스케스)",
+    "Meisje_met_de_parel.jpg": "진주 귀걸이를 한 소녀 (베르메르)",
+    "Pierre-Auguste_Renoir,_Le_Moulin_de_la_Galette.jpg": "물랭 드 라 갈레트의 무도회 (르누아르)",
+    "Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg": "비너스의 탄생 (보티첼리)",
+    "The_Fighting_Temeraire,_JMW_Turner,_National_Gallery.jpg": "전함 테메레르 (터너)",
+    "The_Kiss_-_Gustav_Klimt_-_Google_Cultural_Institute.jpg": "키스 (클림트)",
+    "Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg": "별이 빛나는 밤 (반 고흐)",
+    "Winslow_Homer_-_The_Gulf_Stream_-_Metropolitan_Museum_of_Art.jpg": "멕시코 만류 (윈슬로 호머)",
+    "금강전도.jpg": "금강전도 (정선)",
+    "까치.jpg": "까치와 호랑이 (민화)",
+    "단오풍정.jpg": "단오풍정 (신윤복)",
+    "묘작도.jpg": "묘작도 (변상벽)",
+    "무동.jpg": "무동 (김홍도)",
+    "무용총 수렵도.jpg": "무용총 수렵도 (고구려 고분벽화)",
+    "문자도.jpg": "문자도 (민화)",
+    "서당.jpg": "서당 (김홍도)",
+    "세한도.jpg": "세한도 (김정희)",
+    "십장생도.jpg": "십장생도 (민화)",
+    "씨름.jpg": "씨름 (김홍도)",
+    "인왕제색도.jpg": "인왕제색도 (정선)",
+    "일월오봉도.jpg": "일월오봉도 (조선 왕실)",
+    "자화상.jpg": "자화상 (윤두서)",
+    "책가도.jpg": "책가도 (민화)",
+    "초충도.jpg": "초충도 (신사임당)",
+    "황묘농접도.jpg": "황묘농접도 (김홍도)"
+  };
+
+  // ---- 문화유산: "무형유산_"/"문화유산_" 밑줄 파일명 → 보기 좋은 이름 목록 ----
+  const HERITAGE_LABELS = {
+    "무형유산_거문고산조.jpg": "거문고산조",
+    "무형유산_나전장.jpg": "나전장",
+    "무형유산_낙죽장.jpg": "낙죽장",
+    "무형유산_남사당놀이.jpg": "남사당놀이",
+    "무형유산_매듭장.jpg": "매듭장",
+    "무형유산_봉산탈춤.jpg": "봉산탈춤",
+    "무형유산_양주별산대놀이.jpg": "양주별산대놀이",
+    "무형유산_영산쇠머리대기.jpg": "영산쇠머리대기",
+    "무형유산_유기장.jpg": "유기장",
+    "무형유산_종묘제례악.jpg": "종묘제례악",
+    "무형유산_줄타기.jpg": "줄타기",
+    "무형유산_진주검무.jpg": "진주검무",
+    "무형유산_통영오광대.jpg": "통영오광대",
+    "무형유산_판소리.jpg": "판소리",
+    "무형유산_한산모시짜기.jpg": "한산모시짜기",
+    "문화유산_경주구황동금제여래입상.jpg": "경주 구황동 금제여래입상",
+    "문화유산_금동미륵보살반가사유상.jpg": "금동 미륵보살 반가사유상",
+    "문화유산_금동비로자나불좌상.jpg": "금동 비로자나불좌상",
+    "문화유산_숭례문.jpg": "숭례문",
+    "문화유산_여주고달사지승탑.jpg": "여주 고달사지 승탑",
+    "문화유산_오리모양 연적.jpg": "오리 모양 연적",
+    "문화유산_이순신난중일기.jpg": "이순신 난중일기",
+    "문화유산_익산미륵사지석탑.jpg": "익산 미륵사지 석탑",
+    "문화유산_첨성대.jpg": "첨성대",
+    "문화유산_청자사자형뚜껑향로.jpg": "청자 사자형뚜껑 향로",
+    "문화유산_청자상감운학문매병.jpg": "청자 상감운학문 매병",
+    "문화유산_충주고구려비.jpg": "충주 고구려비",
+    "문화유산_합천해인사대장경판.jpg": "합천 해인사 대장경판",
+    "문화유산_화엄사사사자삼층석탑.jpg": "화엄사 사사자 삼층석탑",
+    "문화유산_훈민정음.jpg": "훈민정음"
+  };
+
+  // ---- 세계도시: "국가_도시" 밑줄 파일명 → "도시 (국가)" 형태로 목록화 ----
+  const CITY_LABELS = {
+    "그리스_산토리니.png": "산토리니 (그리스)",
+    "대만_타이페이.png": "타이베이 (대만)",
+    "대한민국_서울.png": "서울 (대한민국)",
+    "모로코-메르주가사하라사막.png": "메르주가 사하라사막 (모로코)",
+    "모로코_쉐프샤우엔.png": "쉐프샤우엔 (모로코)",
+    "미국_뉴욕.png": "뉴욕 (미국)",
+    "미국_라스베가스1.png": "라스베가스 (미국)",
+    "미국_라스베가스2.png": "라스베가스 (미국)",
+    "미국_샌프란시스코.png": "샌프란시스코 (미국)",
+    "볼리비아_우유니.png": "우유니 (볼리비아)",
+    "스위스_체르마트.png": "체르마트 (스위스)",
+    "스페인_세비야.png": "세비야 (스페인)",
+    "슬로베니아_블레드.png": "블레드 (슬로베니아)",
+    "아이슬란드_그룬다르피외르뒤르(도시이름은 아니지만 더 유명한 이 지형 이름으로는 키르큐펠).png": "키르큐펠 (아이슬란드)",
+    "오스트리아_빈.png": "빈 (오스트리아)",
+    "이탈리아_돌로미티.png": "돌로미티 (이탈리아)",
+    "이탈리아_로마.png": "로마 (이탈리아)",
+    "이탈리아_포지타노.png": "포지타노 (이탈리아)",
+    "이탈리아_피렌체.png": "피렌체 (이탈리아)",
+    "일본_가마쿠라.png": "가마쿠라 (일본)",
+    "일본_교토.png": "교토 (일본)",
+    "일본_도쿄.png": "도쿄 (일본)",
+    "일본_비에이.png": "비에이 (일본)",
+    "일본_삿포로.png": "삿포로 (일본)",
+    "일본_오사카.png": "오사카 (일본)",
+    "일본_후지.png": "후지산 (일본)",
+    "체코_프라하.png": "프라하 (체코)",
+    "캐나다_토론토.png": "토론토 (캐나다)",
+    "쿠바_아바나.png": "아바나 (쿠바)",
+    "크로아티아_두브로브니크.png": "두브로브니크 (크로아티아)",
+    "튀르키예_이스탄불.png": "이스탄불 (튀르키예)",
+    "튀르키예_카파도키아.png": "카파도키아 (튀르키예)",
+    "페로제도_뵈르.png": "뵈르 (페로제도)",
+    "페루_마추픽추.png": "마추픽추 (페루)",
+    "포르투갈_포르투.png": "포르투 (포르투갈)",
+    "프랑스_파리.png": "파리 (프랑스)",
+    "헝가리_부다페스트.png": "부다페스트 (헝가리)",
+    "홍콩_홍콩섬.png": "홍콩"
+  };
+
+  // ---- 악기: 영문/로마자 파일명 → 한글 이름 목록 (국악기 12종 포함) ----
+  const INSTRUMENT_LABELS = {
+    "banjo.webp": "밴조",
+    "bass drum.webp": "베이스 드럼(큰북)",
+    "bassoon.webp": "바순",
+    "castanets.webp": "캐스터네츠",
+    "cello.webp": "첼로",
+    "clarinet.webp": "클라리넷",
+    "cowbell.webp": "카우벨",
+    "danso.jpg": "단소",
+    "djembe.webp": "젬베",
+    "double-bass.webp": "더블베이스",
+    "flute.webp": "플루트",
+    "french-horn.webp": "호른",
+    "gayageum.jpg": "가야금",
+    "geomungo.jpg": "거문고",
+    "guiro.webp": "귀로",
+    "guitar.webp": "기타",
+    "haegeum.jpg": "해금",
+    "hyangpiri.jpg": "향피리",
+    "janggu.jpg": "장구",
+    "jing.jpg": "징",
+    "kkwaenggwari.jpg": "꽹과리",
+    "mandolin.webp": "만돌린",
+    "oboe.webp": "오보에",
+    "pyeongyeong.jpg": "편경",
+    "pyeonjong.jpg": "편종",
+    "saxophone.webp": "색소폰",
+    "snare drum.webp": "스네어 드럼(작은북)",
+    "sogeum.jpg": "소금",
+    "taepyeongso.jpg": "태평소",
+    "tambourine.webp": "탬버린",
+    "triangle.webp": "트라이앵글",
+    "trombone.webp": "트롬본",
+    "trumpet.webp": "트럼펫",
+    "tuba.webp": "튜바",
+    "viola.webp": "비올라",
+    "violin.webp": "바이올린",
+    "wind chimes.webp": "윈드 차임",
+    "woodblock.webp": "우드블록"
+  };
+
+  function baseName(file){ return file.replace(/\.[a-zA-Z0-9]+$/, ""); }
+  function makeItems(files, labelMap){
+    return files.map(function(f){ return {file:f, name:(labelMap && labelMap[f]) || baseName(f)}; });
+  }
+
+  const CATEGORY_DEFS = {
+    frog:       {label:"개구리·양서류", icon:"🐸", dir:"개구리",   items:makeItems(FROG_FILES)},
+    animal:     {label:"동물",          icon:"🐾", dir:"동물",     items:makeItems(ANIMAL_FILES)},
+    plant:      {label:"식물",          icon:"🌿", dir:"식물",     items:makeItems(PLANT_FILES)},
+    art:        {label:"명화",          icon:"🎨", dir:"명화",     items:makeItems(Object.keys(ART_LABELS), ART_LABELS)},
+    heritage:   {label:"문화유산",      icon:"🏛️", dir:"문화유산", items:makeItems(Object.keys(HERITAGE_LABELS), HERITAGE_LABELS)},
+    city:       {label:"세계도시",      icon:"🌍", dir:"세계도시", items:makeItems(Object.keys(CITY_LABELS), CITY_LABELS)},
+    instrument: {label:"악기",          icon:"🎻", dir:"악기/img", items:makeItems(Object.keys(INSTRUMENT_LABELS), INSTRUMENT_LABELS)}
+  };
+  const CATEGORY_KEYS = Object.keys(CATEGORY_DEFS);
+
+  const DIFFICULTY_PRESETS = {
+    easy:   {minR:0.11,  maxR:0.52},
+    normal: {minR:0.05,  maxR:0.42},
+    hard:   {minR:0.025, maxR:0.27}
+  };
+
+  /* =========================================================================
+     다국어(i18n) 지원
+     - 게임 콘텐츠(카테고리 이미지·정답명)는 절대 번역하지 않고 한국어 그대로 둡니다.
+     - 여기서 번역하는 것은 오직 화면의 UI 문구(제목/버튼/안내문)뿐입니다.
+     ========================================================================= */
+  const LM_STORAGE_KEY = 'kingsmath_lang';
+  const LM_LANGS = [
+    {code:"ko", country:"kr", native:"한국어", en:"Korean"},
+    {code:"en", country:"us", native:"English", en:"English"},
+    {code:"zh", country:"cn", native:"中文(简体)", en:"Chinese (Simplified)"},
+    {code:"ja", country:"jp", native:"日本語", en:"Japanese"},
+    {code:"es", country:"es", native:"Español", en:"Spanish"},
+    {code:"fr", country:"fr", native:"Français", en:"French"},
+    {code:"de", country:"de", native:"Deutsch", en:"German"},
+    {code:"it", country:"it", native:"Italiano", en:"Italian"},
+    {code:"pt-br", country:"br", native:"Português", en:"Portuguese (Brazil)"},
+    {code:"ru", country:"ru", native:"Русский", en:"Russian"},
+    {code:"hi", country:"in", native:"हिन्दी", en:"Hindi"},
+    {code:"bn", country:"bd", native:"বাংলা", en:"Bengali"},
+    {code:"id", country:"id", native:"Bahasa Indonesia", en:"Indonesian"},
+    {code:"vi", country:"vn", native:"Tiếng Việt", en:"Vietnamese"},
+    {code:"th", country:"th", native:"ไทย", en:"Thai"},
+    {code:"tr", country:"tr", native:"Türkçe", en:"Turkish"}
+  ];
+  const LM_SUPPORTED = LM_LANGS.map(function(l){ return l.code; });
+
+  const I18N = {
+    ko: {
+      title:"포커스킹", titleIsOriginal:true,
+      sub:"내 사진을 스포트라이트로 밝혀서 먼저 정답을 맞히세요!",
+      teamA:"🔴 레드팀", teamB:"🔵 블루팀",
+      catTitle:"🗂 어떤 주제로 맞힐까요? (선택 / 전체 랜덤)", catAll:"🎲 전체 랜덤",
+      catFrog:"개구리·양서류", catAnimal:"동물", catPlant:"식물", catArt:"명화", catHeritage:"문화유산", catCity:"세계도시", catInstrument:"악기",
+      modeTitle:"🎮 게임 방식", modeTA:"⏱ 타임어택 (60초)", modeMatch:"🏆 라운드 대결 (선승제)",
+      fmtTitle:"몇 승을 먼저 하면 이길까요?", win:["1승","2승","3승","5승"],
+      diffTitle:"🎯 난이도", diffEasy:"쉬움", diffNormal:"보통", diffHard:"어려움",
+      start:"게임 시작", homeTip:"처음으로 (옵션 다시 고르기)", fsTip:"전체화면",
+      penalty:"잠시 후 다시 도전!",
+      tagCorrect:"정답!", tagTimeUp:"시간 종료", tagRevealed:"정답 공개", tagFinished:"종료", tagNext:"다음 문제!",
+      roundLabel:function(n,f){ return n+"라운드 · "+f+"승 대결"; },
+      taLabel:"타임어택 · 60초 안에 많이 맞히기",
+      timeUpHead:"⏰ 시간 종료!", timeUpDetail:function(name){ return "아무도 못 맞혔어요. 정답은 "+name+" 였습니다."; },
+      nextBtn:"다음 라운드",
+      roundWin:function(team){ return team+" 라운드 승리!"; }, answerWas:function(name){ return "정답은 "+name+" 였습니다."; },
+      champion:function(team){ return "👑 "+team+" 우승!"; }, finalScore:function(a,b){ return "최종 스코어 "+a+" : "+b; },
+      restartBtn:"다시 하기", drawHead:"🤝 무승부!", winHead:function(team){ return "👑 "+team+" 승리!"; },
+      autoNext:function(n){ return n+"초 후 자동으로 다음 라운드로 이동합니다..."; },
+      seoTitle:"포커스킹 FOCUS KING", seoDesc:"여러 명이 동시에 즐기는 스포트라이트 정답 맞히기 게임, 포커스킹!", seoKeywords:"포커스킹,전자칠판 게임,스포트라이트 게임,교육용 게임",
+      searchPh:"Search / 검색 ...", noResult:"No results / 검색 결과 없음", toastChanged:"언어가 변경되었습니다."
+    },
+    en: {
+      title:"Focus King",
+      sub:"Light up your picture with the spotlight and guess it first!",
+      teamA:"🔴 Red Team", teamB:"🔵 Blue Team",
+      catTitle:"🗂 Pick a topic! (choose some, or randomize them all)", catAll:"🎲 All Random",
+      catFrog:"Frogs & Amphibians", catAnimal:"Animals", catPlant:"Plants", catArt:"Famous Art", catHeritage:"Heritage", catCity:"World Cities", catInstrument:"Instruments",
+      modeTitle:"🎮 Game Mode", modeTA:"⏱ Time Attack (60s)", modeMatch:"🏆 Round Battle (First to Win)",
+      fmtTitle:"How many wins to become champion?", win:["1 Win","2 Wins","3 Wins","5 Wins"],
+      diffTitle:"🎯 Difficulty", diffEasy:"Easy", diffNormal:"Normal", diffHard:"Hard",
+      start:"Start Game", homeTip:"Home (choose options again)", fsTip:"Fullscreen",
+      penalty:"Try again soon!",
+      tagCorrect:"Correct!", tagTimeUp:"Time's Up", tagRevealed:"Answer Revealed", tagFinished:"Finished", tagNext:"Next Question!",
+      roundLabel:function(n,f){ return "Round "+n+" · First to "+f; },
+      taLabel:"Time Attack · Answer as many as you can in 60s",
+      timeUpHead:"⏰ Time's Up!", timeUpDetail:function(name){ return "Nobody got it. The answer was "+name+"."; },
+      nextBtn:"Next Round",
+      roundWin:function(team){ return team+" wins the round!"; }, answerWas:function(name){ return "The answer was "+name+"."; },
+      champion:function(team){ return "👑 "+team+" is the Champion!"; }, finalScore:function(a,b){ return "Final Score "+a+" : "+b; },
+      restartBtn:"Play Again", drawHead:"🤝 It's a Draw!", winHead:function(team){ return "👑 "+team+" Wins!"; },
+      autoNext:function(n){ return "Next round in "+n+"s..."; },
+      seoTitle:"Focus King | Spotlight Guessing Game", seoDesc:"A fun spotlight guessing game for two teams playing together at once!", seoKeywords:"Focus King,classroom game,spotlight quiz,kids game",
+      searchPh:"Search...", noResult:"No results found", toastChanged:"Language changed."
+    },
+    zh: {
+      title:"专注大王",
+      sub:"用聚光灯照亮你的图片，抢先猜出答案吧！",
+      teamA:"🔴 红队", teamB:"🔵 蓝队",
+      catTitle:"🗂 选择一个主题吧！（可多选，或全部随机）", catAll:"🎲 全部随机",
+      catFrog:"青蛙和两栖动物", catAnimal:"动物", catPlant:"植物", catArt:"名画", catHeritage:"文化遗产", catCity:"世界城市", catInstrument:"乐器",
+      modeTitle:"🎮 游戏方式", modeTA:"⏱ 计时挑战（60秒）", modeMatch:"🏆 回合对决（率先获胜）",
+      fmtTitle:"先赢几局才算获胜？", win:["1胜","2胜","3胜","5胜"],
+      diffTitle:"🎯 难度", diffEasy:"简单", diffNormal:"普通", diffHard:"困难",
+      start:"开始游戏", homeTip:"返回首页（重新选择设置）", fsTip:"全屏",
+      penalty:"请稍后再挑战！",
+      tagCorrect:"答对了！", tagTimeUp:"时间到", tagRevealed:"公开答案", tagFinished:"结束", tagNext:"下一题！",
+      roundLabel:function(n,f){ return "第"+n+"回合 · 先赢"+f+"局"; },
+      taLabel:"计时挑战 · 60秒内尽量多答对",
+      timeUpHead:"⏰ 时间到！", timeUpDetail:function(name){ return "大家都没答对。正确答案是"+name+"。"; },
+      nextBtn:"下一回合",
+      roundWin:function(team){ return team+" 赢得本回合！"; }, answerWas:function(name){ return "正确答案是"+name+"。"; },
+      champion:function(team){ return "👑 "+team+" 获得冠军！"; }, finalScore:function(a,b){ return "最终比分 "+a+" : "+b; },
+      restartBtn:"再玩一次", drawHead:"🤝 平局！", winHead:function(team){ return "👑 "+team+" 获胜！"; },
+      autoNext:function(n){ return n+"秒后自动进入下一回合..."; },
+      seoTitle:"专注大王 | 聚光灯猜谜游戏", seoDesc:"两队可以同时开心游玩的聚光灯猜谜游戏！", seoKeywords:"专注大王,课堂游戏,聚光灯猜谜,儿童游戏",
+      searchPh:"搜索...", noResult:"没有找到结果", toastChanged:"语言已更改。"
+    },
+    ja: {
+      title:"フォーカス王",
+      sub:"スポットライトで写真を照らして、先に答えを当てよう！",
+      teamA:"🔴 レッドチーム", teamB:"🔵 ブルーチーム",
+      catTitle:"🗂 テーマを選ぼう！（選択、またはすべてランダム）", catAll:"🎲 すべてランダム",
+      catFrog:"カエル・両生類", catAnimal:"動物", catPlant:"植物", catArt:"名画", catHeritage:"文化遺産", catCity:"世界の都市", catInstrument:"楽器",
+      modeTitle:"🎮 ゲームモード", modeTA:"⏱ タイムアタック（60秒）", modeMatch:"🏆 ラウンド対決（先取制）",
+      fmtTitle:"何勝したら優勝にする？", win:["1勝","2勝","3勝","5勝"],
+      diffTitle:"🎯 難易度", diffEasy:"かんたん", diffNormal:"ふつう", diffHard:"むずかしい",
+      start:"ゲームスタート", homeTip:"ホームへ（設定をえらび直す）", fsTip:"全画面表示",
+      penalty:"すこし待ってからもう一度！",
+      tagCorrect:"せいかい！", tagTimeUp:"じかんぎれ", tagRevealed:"こたえを表示", tagFinished:"しゅうりょう", tagNext:"つぎの問題！",
+      roundLabel:function(n,f){ return "第"+n+"ラウンド ・ "+f+"勝先取"; },
+      taLabel:"タイムアタック ・ 60秒でたくさん正解しよう",
+      timeUpHead:"⏰ じかんぎれ！", timeUpDetail:function(name){ return "だれも正解できませんでした。こたえは"+name+"でした。"; },
+      nextBtn:"次のラウンドへ",
+      roundWin:function(team){ return team+" がラウンド勝利！"; }, answerWas:function(name){ return "こたえは"+name+"でした。"; },
+      champion:function(team){ return "👑 "+team+" の優勝！"; }, finalScore:function(a,b){ return "最終スコア "+a+" ： "+b; },
+      restartBtn:"もう一度あそぶ", drawHead:"🤝 引き分け！", winHead:function(team){ return "👑 "+team+" の勝利！"; },
+      autoNext:function(n){ return "あと"+n+"秒で次のラウンドへ進みます..."; },
+      seoTitle:"フォーカス王 | スポットライト当てゲーム", seoDesc:"ふたつのチームが同時に楽しめるスポットライト当てゲーム！", seoKeywords:"フォーカス王,教室ゲーム,スポットライトクイズ,子供向けゲーム",
+      searchPh:"検索...", noResult:"検索結果がありません", toastChanged:"言語が変更されました。"
+    },
+    es: {
+      title:"Rey del Enfoque",
+      sub:"¡Ilumina tu foto con el reflector y adivina primero!",
+      teamA:"🔴 Equipo Rojo", teamB:"🔵 Equipo Azul",
+      catTitle:"🗂 ¡Elige un tema! (algunos, o todos al azar)", catAll:"🎲 Todo al Azar",
+      catFrog:"Ranas y Anfibios", catAnimal:"Animales", catPlant:"Plantas", catArt:"Obras de Arte", catHeritage:"Patrimonio", catCity:"Ciudades del Mundo", catInstrument:"Instrumentos",
+      modeTitle:"🎮 Modo de Juego", modeTA:"⏱ Contrarreloj (60s)", modeMatch:"🏆 Duelo por Rondas (el primero en ganar)",
+      fmtTitle:"¿Cuántas victorias para ser campeón?", win:["1 Victoria","2 Victorias","3 Victorias","5 Victorias"],
+      diffTitle:"🎯 Dificultad", diffEasy:"Fácil", diffNormal:"Normal", diffHard:"Difícil",
+      start:"Iniciar Juego", homeTip:"Inicio (elegir opciones de nuevo)", fsTip:"Pantalla Completa",
+      penalty:"¡Vuelve a intentarlo enseguida!",
+      tagCorrect:"¡Correcto!", tagTimeUp:"Se Acabó el Tiempo", tagRevealed:"Respuesta Revelada", tagFinished:"Terminado", tagNext:"¡Siguiente Pregunta!",
+      roundLabel:function(n,f){ return "Ronda "+n+" · El primero en llegar a "+f; },
+      taLabel:"Contrarreloj · ¡Acierta todo lo que puedas en 60s!",
+      timeUpHead:"⏰ ¡Se Acabó el Tiempo!", timeUpDetail:function(name){ return "Nadie acertó. La respuesta era "+name+"."; },
+      nextBtn:"Siguiente Ronda",
+      roundWin:function(team){ return "¡"+team+" gana la ronda!"; }, answerWas:function(name){ return "La respuesta era "+name+"."; },
+      champion:function(team){ return "👑 ¡"+team+" es el Campeón!"; }, finalScore:function(a,b){ return "Puntaje Final "+a+" : "+b; },
+      restartBtn:"Jugar de Nuevo", drawHead:"🤝 ¡Empate!", winHead:function(team){ return "👑 ¡"+team+" Gana!"; },
+      autoNext:function(n){ return "Siguiente ronda en "+n+"s..."; },
+      seoTitle:"Rey del Enfoque | Juego de Adivinar con Reflector", seoDesc:"¡Un divertido juego de reflector para que dos equipos jueguen a la vez!", seoKeywords:"Rey del Enfoque,juego escolar,juego de reflector,juego para niños",
+      searchPh:"Buscar...", noResult:"Sin resultados", toastChanged:"Idioma cambiado."
+    },
+    fr: {
+      title:"Roi de la Concentration",
+      sub:"Éclaire ta photo avec le projecteur et devine la première réponse !",
+      teamA:"🔴 Équipe Rouge", teamB:"🔵 Équipe Bleue",
+      catTitle:"🗂 Choisis un thème ! (au choix, ou tout au hasard)", catAll:"🎲 Tout au Hasard",
+      catFrog:"Grenouilles et Amphibiens", catAnimal:"Animaux", catPlant:"Plantes", catArt:"Œuvres d'Art", catHeritage:"Patrimoine", catCity:"Villes du Monde", catInstrument:"Instruments",
+      modeTitle:"🎮 Mode de Jeu", modeTA:"⏱ Contre-la-montre (60s)", modeMatch:"🏆 Duel par Manches (premier gagnant)",
+      fmtTitle:"Combien de victoires pour devenir champion ?", win:["1 Victoire","2 Victoires","3 Victoires","5 Victoires"],
+      diffTitle:"🎯 Difficulté", diffEasy:"Facile", diffNormal:"Normal", diffHard:"Difficile",
+      start:"Commencer", homeTip:"Accueil (choisir les options à nouveau)", fsTip:"Plein Écran",
+      penalty:"Réessaie bientôt !",
+      tagCorrect:"Correct !", tagTimeUp:"Temps Écoulé", tagRevealed:"Réponse Révélée", tagFinished:"Terminé", tagNext:"Question Suivante !",
+      roundLabel:function(n,f){ return "Manche "+n+" · Premier à "+f; },
+      taLabel:"Contre-la-montre · Réponds un maximum en 60s",
+      timeUpHead:"⏰ Temps Écoulé !", timeUpDetail:function(name){ return "Personne n'a trouvé. La réponse était "+name+"."; },
+      nextBtn:"Manche Suivante",
+      roundWin:function(team){ return team+" remporte la manche !"; }, answerWas:function(name){ return "La réponse était "+name+"."; },
+      champion:function(team){ return "👑 "+team+" est Champion !"; }, finalScore:function(a,b){ return "Score Final "+a+" : "+b; },
+      restartBtn:"Rejouer", drawHead:"🤝 Match Nul !", winHead:function(team){ return "👑 "+team+" Gagne !"; },
+      autoNext:function(n){ return "Prochaine manche dans "+n+"s..."; },
+      seoTitle:"Roi de la Concentration | Jeu du Projecteur", seoDesc:"Un jeu de projecteur amusant pour deux équipes qui jouent en même temps !", seoKeywords:"Roi de la Concentration,jeu de classe,quiz projecteur,jeu pour enfants",
+      searchPh:"Rechercher...", noResult:"Aucun résultat", toastChanged:"Langue modifiée."
+    },
+    de: {
+      title:"König der Konzentration",
+      sub:"Leuchte dein Bild mit dem Scheinwerfer an und errate es zuerst!",
+      teamA:"🔴 Rotes Team", teamB:"🔵 Blaues Team",
+      catTitle:"🗂 Wähle ein Thema! (auswählen oder alles zufällig)", catAll:"🎲 Alles Zufällig",
+      catFrog:"Frösche & Amphibien", catAnimal:"Tiere", catPlant:"Pflanzen", catArt:"Kunstwerke", catHeritage:"Kulturerbe", catCity:"Städte der Welt", catInstrument:"Instrumente",
+      modeTitle:"🎮 Spielmodus", modeTA:"⏱ Zeitrennen (60s)", modeMatch:"🏆 Rundenduell (Erster gewinnt)",
+      fmtTitle:"Wie viele Siege für den Champion?", win:["1 Sieg","2 Siege","3 Siege","5 Siege"],
+      diffTitle:"🎯 Schwierigkeit", diffEasy:"Leicht", diffNormal:"Normal", diffHard:"Schwer",
+      start:"Spiel Starten", homeTip:"Startseite (Optionen erneut wählen)", fsTip:"Vollbild",
+      penalty:"Versuch es gleich noch einmal!",
+      tagCorrect:"Richtig!", tagTimeUp:"Zeit Abgelaufen", tagRevealed:"Antwort Aufgedeckt", tagFinished:"Beendet", tagNext:"Nächste Frage!",
+      roundLabel:function(n,f){ return "Runde "+n+" · Erster bei "+f; },
+      taLabel:"Zeitrennen · Errate so viele wie möglich in 60s",
+      timeUpHead:"⏰ Zeit Abgelaufen!", timeUpDetail:function(name){ return "Niemand hat es erraten. Die Antwort war "+name+"."; },
+      nextBtn:"Nächste Runde",
+      roundWin:function(team){ return team+" gewinnt die Runde!"; }, answerWas:function(name){ return "Die Antwort war "+name+"."; },
+      champion:function(team){ return "👑 "+team+" ist Champion!"; }, finalScore:function(a,b){ return "Endstand "+a+" : "+b; },
+      restartBtn:"Nochmal Spielen", drawHead:"🤝 Unentschieden!", winHead:function(team){ return "👑 "+team+" gewinnt!"; },
+      autoNext:function(n){ return "Nächste Runde in "+n+"s..."; },
+      seoTitle:"König der Konzentration | Scheinwerfer-Ratespiel", seoDesc:"Ein lustiges Scheinwerfer-Ratespiel für zwei gleichzeitig spielende Teams!", seoKeywords:"König der Konzentration,Klassenspiel,Scheinwerfer-Quiz,Kinderspiel",
+      searchPh:"Suchen...", noResult:"Keine Ergebnisse", toastChanged:"Sprache geändert."
+    },
+    it: {
+      title:"Re della Concentrazione",
+      sub:"Illumina la tua foto con il riflettore e indovina per primo!",
+      teamA:"🔴 Squadra Rossa", teamB:"🔵 Squadra Blu",
+      catTitle:"🗂 Scegli un tema! (a scelta, o tutto casuale)", catAll:"🎲 Tutto Casuale",
+      catFrog:"Rane e Anfibi", catAnimal:"Animali", catPlant:"Piante", catArt:"Opere d'Arte", catHeritage:"Patrimonio", catCity:"Città del Mondo", catInstrument:"Strumenti",
+      modeTitle:"🎮 Modalità di Gioco", modeTA:"⏱ Contro il Tempo (60s)", modeMatch:"🏆 Sfida a Round (primo a vincere)",
+      fmtTitle:"Quante vittorie per diventare campione?", win:["1 Vittoria","2 Vittorie","3 Vittorie","5 Vittorie"],
+      diffTitle:"🎯 Difficoltà", diffEasy:"Facile", diffNormal:"Normale", diffHard:"Difficile",
+      start:"Inizia Partita", homeTip:"Home (scegli di nuovo le opzioni)", fsTip:"Schermo Intero",
+      penalty:"Riprova tra poco!",
+      tagCorrect:"Corretto!", tagTimeUp:"Tempo Scaduto", tagRevealed:"Risposta Svelata", tagFinished:"Finito", tagNext:"Prossima Domanda!",
+      roundLabel:function(n,f){ return "Round "+n+" · Primo a "+f; },
+      taLabel:"Contro il Tempo · Indovina il più possibile in 60s",
+      timeUpHead:"⏰ Tempo Scaduto!", timeUpDetail:function(name){ return "Nessuno ha indovinato. La risposta era "+name+"."; },
+      nextBtn:"Prossimo Round",
+      roundWin:function(team){ return team+" vince il round!"; }, answerWas:function(name){ return "La risposta era "+name+"."; },
+      champion:function(team){ return "👑 "+team+" è Campione!"; }, finalScore:function(a,b){ return "Punteggio Finale "+a+" : "+b; },
+      restartBtn:"Gioca Ancora", drawHead:"🤝 Pareggio!", winHead:function(team){ return "👑 "+team+" Vince!"; },
+      autoNext:function(n){ return "Prossimo round tra "+n+"s..."; },
+      seoTitle:"Re della Concentrazione | Gioco del Riflettore", seoDesc:"Un divertente gioco del riflettore per due squadre che giocano insieme!", seoKeywords:"Re della Concentrazione,gioco in classe,quiz riflettore,gioco per bambini",
+      searchPh:"Cerca...", noResult:"Nessun risultato", toastChanged:"Lingua cambiata."
+    },
+    "pt-br": {
+      title:"Rei do Foco",
+      sub:"Ilumine sua foto com o holofote e adivinhe primeiro!",
+      teamA:"🔴 Time Vermelho", teamB:"🔵 Time Azul",
+      catTitle:"🗂 Escolha um tema! (à sua escolha, ou tudo aleatório)", catAll:"🎲 Tudo Aleatório",
+      catFrog:"Sapos e Anfíbios", catAnimal:"Animais", catPlant:"Plantas", catArt:"Obras de Arte", catHeritage:"Patrimônio", catCity:"Cidades do Mundo", catInstrument:"Instrumentos",
+      modeTitle:"🎮 Modo de Jogo", modeTA:"⏱ Contra o Tempo (60s)", modeMatch:"🏆 Disputa por Rodadas (o primeiro a vencer)",
+      fmtTitle:"Quantas vitórias para ser campeão?", win:["1 Vitória","2 Vitórias","3 Vitórias","5 Vitórias"],
+      diffTitle:"🎯 Dificuldade", diffEasy:"Fácil", diffNormal:"Normal", diffHard:"Difícil",
+      start:"Iniciar Jogo", homeTip:"Início (escolher opções novamente)", fsTip:"Tela Cheia",
+      penalty:"Tente de novo em instantes!",
+      tagCorrect:"Correto!", tagTimeUp:"Tempo Esgotado", tagRevealed:"Resposta Revelada", tagFinished:"Finalizado", tagNext:"Próxima Pergunta!",
+      roundLabel:function(n,f){ return "Rodada "+n+" · Primeiro a "+f; },
+      taLabel:"Contra o Tempo · Acerte o máximo em 60s",
+      timeUpHead:"⏰ Tempo Esgotado!", timeUpDetail:function(name){ return "Ninguém acertou. A resposta era "+name+"."; },
+      nextBtn:"Próxima Rodada",
+      roundWin:function(team){ return team+" vence a rodada!"; }, answerWas:function(name){ return "A resposta era "+name+"."; },
+      champion:function(team){ return "👑 "+team+" é o Campeão!"; }, finalScore:function(a,b){ return "Placar Final "+a+" : "+b; },
+      restartBtn:"Jogar de Novo", drawHead:"🤝 Empate!", winHead:function(team){ return "👑 "+team+" Vence!"; },
+      autoNext:function(n){ return "Próxima rodada em "+n+"s..."; },
+      seoTitle:"Rei do Foco | Jogo de Adivinhação com Holofote", seoDesc:"Um divertido jogo de holofote para duas equipes jogarem ao mesmo tempo!", seoKeywords:"Rei do Foco,jogo escolar,quiz holofote,jogo infantil",
+      searchPh:"Pesquisar...", noResult:"Nenhum resultado", toastChanged:"Idioma alterado."
+    },
+    ru: {
+      title:"Король Внимания",
+      sub:"Освети свою картинку прожектором и отгадай первым!",
+      teamA:"🔴 Красная команда", teamB:"🔵 Синяя команда",
+      catTitle:"🗂 Выбери тему! (можно несколько, или всё случайно)", catAll:"🎲 Всё Случайно",
+      catFrog:"Лягушки и амфибии", catAnimal:"Животные", catPlant:"Растения", catArt:"Картины", catHeritage:"Наследие", catCity:"Города мира", catInstrument:"Инструменты",
+      modeTitle:"🎮 Режим игры", modeTA:"⏱ Игра на время (60с)", modeMatch:"🏆 Раунды на вылет (кто первый выиграет)",
+      fmtTitle:"Сколько побед нужно для чемпионства?", win:["1 победа","2 победы","3 победы","5 побед"],
+      diffTitle:"🎯 Сложность", diffEasy:"Лёгкий", diffNormal:"Обычный", diffHard:"Сложный",
+      start:"Начать игру", homeTip:"Домой (выбрать настройки заново)", fsTip:"Во весь экран",
+      penalty:"Попробуй ещё раз чуть позже!",
+      tagCorrect:"Верно!", tagTimeUp:"Время вышло", tagRevealed:"Ответ раскрыт", tagFinished:"Завершено", tagNext:"Следующий вопрос!",
+      roundLabel:function(n,f){ return "Раунд "+n+" · До "+f+" побед"; },
+      taLabel:"Игра на время · Отгадай как можно больше за 60 секунд",
+      timeUpHead:"⏰ Время вышло!", timeUpDetail:function(name){ return "Никто не угадал. Правильный ответ: "+name+"."; },
+      nextBtn:"Следующий раунд",
+      roundWin:function(team){ return team+" побеждает в раунде!"; }, answerWas:function(name){ return "Правильный ответ: "+name+"."; },
+      champion:function(team){ return "👑 "+team+" — чемпион!"; }, finalScore:function(a,b){ return "Итоговый счёт "+a+" : "+b; },
+      restartBtn:"Играть снова", drawHead:"🤝 Ничья!", winHead:function(team){ return "👑 "+team+" побеждает!"; },
+      autoNext:function(n){ return "Следующий раунд через "+n+" с..."; },
+      seoTitle:"Король Внимания | Игра с прожектором", seoDesc:"Весёлая игра с прожектором для двух команд одновременно!", seoKeywords:"Король Внимания,игра для класса,викторина с прожектором,игра для детей",
+      searchPh:"Поиск...", noResult:"Ничего не найдено", toastChanged:"Язык изменён."
+    },
+    id: {
+      title:"Raja Fokus",
+      sub:"Terangi fotomu dengan sorotan lampu dan tebak duluan!",
+      teamA:"🔴 Tim Merah", teamB:"🔵 Tim Biru",
+      catTitle:"🗂 Pilih topik! (pilih sendiri, atau acak semua)", catAll:"🎲 Acak Semua",
+      catFrog:"Katak & Amfibi", catAnimal:"Hewan", catPlant:"Tumbuhan", catArt:"Lukisan Terkenal", catHeritage:"Warisan Budaya", catCity:"Kota Dunia", catInstrument:"Alat Musik",
+      modeTitle:"🎮 Mode Permainan", modeTA:"⏱ Serangan Waktu (60 dtk)", modeMatch:"🏆 Duel Ronde (yang pertama menang)",
+      fmtTitle:"Berapa kali menang untuk jadi juara?", win:["1 Menang","2 Menang","3 Menang","5 Menang"],
+      diffTitle:"🎯 Tingkat Kesulitan", diffEasy:"Mudah", diffNormal:"Normal", diffHard:"Sulit",
+      start:"Mulai Permainan", homeTip:"Beranda (pilih opsi lagi)", fsTip:"Layar Penuh",
+      penalty:"Coba lagi sebentar lagi!",
+      tagCorrect:"Benar!", tagTimeUp:"Waktu Habis", tagRevealed:"Jawaban Terungkap", tagFinished:"Selesai", tagNext:"Soal Berikutnya!",
+      roundLabel:function(n,f){ return "Ronde "+n+" · Menang "+f+" kali"; },
+      taLabel:"Serangan Waktu · Jawab sebanyak mungkin dalam 60 detik",
+      timeUpHead:"⏰ Waktu Habis!", timeUpDetail:function(name){ return "Tidak ada yang menjawab benar. Jawabannya adalah "+name+"."; },
+      nextBtn:"Ronde Berikutnya",
+      roundWin:function(team){ return team+" memenangkan ronde ini!"; }, answerWas:function(name){ return "Jawabannya adalah "+name+"."; },
+      champion:function(team){ return "👑 "+team+" menjadi Juara!"; }, finalScore:function(a,b){ return "Skor Akhir "+a+" : "+b; },
+      restartBtn:"Main Lagi", drawHead:"🤝 Seri!", winHead:function(team){ return "👑 "+team+" Menang!"; },
+      autoNext:function(n){ return "Ronde berikutnya dalam "+n+" detik..."; },
+      seoTitle:"Raja Fokus | Permainan Tebak Sorotan Lampu", seoDesc:"Permainan sorotan lampu yang seru untuk dua tim bermain bersamaan!", seoKeywords:"Raja Fokus,permainan kelas,kuis sorotan lampu,permainan anak",
+      searchPh:"Cari...", noResult:"Tidak ada hasil", toastChanged:"Bahasa telah diubah."
+    },
+    vi: {
+      title:"Vua Tập Trung",
+      sub:"Chiếu sáng bức ảnh của bạn bằng đèn sân khấu và đoán trước tiên nhé!",
+      teamA:"🔴 Đội Đỏ", teamB:"🔵 Đội Xanh",
+      catTitle:"🗂 Chọn một chủ đề! (tự chọn, hoặc ngẫu nhiên tất cả)", catAll:"🎲 Ngẫu Nhiên Tất Cả",
+      catFrog:"Ếch & Lưỡng cư", catAnimal:"Động vật", catPlant:"Thực vật", catArt:"Tranh nổi tiếng", catHeritage:"Di sản văn hóa", catCity:"Thành phố thế giới", catInstrument:"Nhạc cụ",
+      modeTitle:"🎮 Chế độ chơi", modeTA:"⏱ Đấu tốc độ (60 giây)", modeMatch:"🏆 Đấu vòng (ai thắng trước)",
+      fmtTitle:"Thắng bao nhiêu ván thì vô địch?", win:["Thắng 1","Thắng 2","Thắng 3","Thắng 5"],
+      diffTitle:"🎯 Độ khó", diffEasy:"Dễ", diffNormal:"Bình thường", diffHard:"Khó",
+      start:"Bắt Đầu Chơi", homeTip:"Trang chủ (chọn lại tùy chọn)", fsTip:"Toàn màn hình",
+      penalty:"Thử lại sau một chút nhé!",
+      tagCorrect:"Chính xác!", tagTimeUp:"Hết Giờ", tagRevealed:"Đã Hiện Đáp Án", tagFinished:"Kết thúc", tagNext:"Câu Tiếp Theo!",
+      roundLabel:function(n,f){ return "Vòng "+n+" · Ai thắng "+f+" ván trước"; },
+      taLabel:"Đấu tốc độ · Trả lời đúng càng nhiều càng tốt trong 60 giây",
+      timeUpHead:"⏰ Hết Giờ!", timeUpDetail:function(name){ return "Không ai đoán đúng. Đáp án là "+name+"."; },
+      nextBtn:"Vòng Tiếp Theo",
+      roundWin:function(team){ return team+" thắng vòng này!"; }, answerWas:function(name){ return "Đáp án là "+name+"."; },
+      champion:function(team){ return "👑 "+team+" là Nhà Vô Địch!"; }, finalScore:function(a,b){ return "Tỉ số cuối cùng "+a+" : "+b; },
+      restartBtn:"Chơi Lại", drawHead:"🤝 Hòa!", winHead:function(team){ return "👑 "+team+" Chiến Thắng!"; },
+      autoNext:function(n){ return "Vòng tiếp theo sau "+n+" giây..."; },
+      seoTitle:"Vua Tập Trung | Trò Chơi Đoán Đèn Sân Khấu", seoDesc:"Trò chơi đèn sân khấu vui nhộn cho hai đội cùng chơi một lúc!", seoKeywords:"Vua Tập Trung,trò chơi lớp học,đố vui đèn sân khấu,trò chơi trẻ em",
+      searchPh:"Tìm kiếm...", noResult:"Không tìm thấy kết quả", toastChanged:"Ngôn ngữ đã được thay đổi."
+    },
+    th: {
+      title:"ราชาโฟกัส",
+      sub:"ส่องไฟสปอตไลต์ไปที่ภาพของคุณแล้วทายให้ได้ก่อนใคร!",
+      teamA:"🔴 ทีมแดง", teamB:"🔵 ทีมน้ำเงิน",
+      catTitle:"🗂 เลือกหัวข้อกันเถอะ! (เลือกเอง หรือสุ่มทั้งหมด)", catAll:"🎲 สุ่มทั้งหมด",
+      catFrog:"กบและสัตว์สะเทินน้ำสะเทินบก", catAnimal:"สัตว์", catPlant:"พืช", catArt:"ภาพวาดชื่อดัง", catHeritage:"มรดกวัฒนธรรม", catCity:"เมืองต่าง ๆ ของโลก", catInstrument:"เครื่องดนตรี",
+      modeTitle:"🎮 รูปแบบการเล่น", modeTA:"⏱ ท้าเวลา (60 วินาที)", modeMatch:"🏆 แข่งแบบรอบ (ใครชนะก่อน)",
+      fmtTitle:"ชนะกี่ครั้งถึงจะเป็นแชมป์?", win:["ชนะ 1","ชนะ 2","ชนะ 3","ชนะ 5"],
+      diffTitle:"🎯 ระดับความยาก", diffEasy:"ง่าย", diffNormal:"ปกติ", diffHard:"ยาก",
+      start:"เริ่มเกม", homeTip:"กลับหน้าแรก (เลือกตัวเลือกใหม่)", fsTip:"เต็มจอ",
+      penalty:"รออีกนิดแล้วลองใหม่นะ!",
+      tagCorrect:"ถูกต้อง!", tagTimeUp:"หมดเวลา", tagRevealed:"เฉลยคำตอบ", tagFinished:"จบเกม", tagNext:"ข้อต่อไป!",
+      roundLabel:function(n,f){ return "รอบที่ "+n+" · ใครชนะ "+f+" ครั้งก่อน"; },
+      taLabel:"ท้าเวลา · ตอบให้ถูกให้ได้มากที่สุดใน 60 วินาที",
+      timeUpHead:"⏰ หมดเวลา!", timeUpDetail:function(name){ return "ไม่มีใครตอบถูกเลย คำตอบคือ "+name; },
+      nextBtn:"ไปรอบถัดไป",
+      roundWin:function(team){ return team+" ชนะในรอบนี้!"; }, answerWas:function(name){ return "คำตอบคือ "+name; },
+      champion:function(team){ return "👑 "+team+" คือแชมป์!"; }, finalScore:function(a,b){ return "คะแนนสุดท้าย "+a+" : "+b; },
+      restartBtn:"เล่นอีกครั้ง", drawHead:"🤝 เสมอกัน!", winHead:function(team){ return "👑 "+team+" ชนะ!"; },
+      autoNext:function(n){ return "ไปรอบถัดไปใน "+n+" วินาที..."; },
+      seoTitle:"ราชาโฟกัส | เกมทายภาพด้วยสปอตไลต์", seoDesc:"เกมสปอตไลต์สุดสนุกให้สองทีมเล่นพร้อมกัน!", seoKeywords:"ราชาโฟกัส,เกมในห้องเรียน,เกมทายภาพ,เกมสำหรับเด็ก",
+      searchPh:"ค้นหา...", noResult:"ไม่พบผลลัพธ์", toastChanged:"เปลี่ยนภาษาเรียบร้อยแล้ว"
+    },
+    hi: {
+      title:"फोकस किंग",
+      sub:"स्पॉटलाइट से अपनी तस्वीर रोशन करो और सबसे पहले जवाब बताओ!",
+      teamA:"🔴 लाल टीम", teamB:"🔵 नीली टीम",
+      catTitle:"🗂 एक विषय चुनो! (चुनें, या सब कुछ रैंडम)", catAll:"🎲 सब कुछ रैंडम",
+      catFrog:"मेंढक और उभयचर", catAnimal:"जानवर", catPlant:"पौधे", catArt:"प्रसिद्ध पेंटिंग", catHeritage:"सांस्कृतिक धरोहर", catCity:"दुनिया के शहर", catInstrument:"वाद्य यंत्र",
+      modeTitle:"🎮 खेल का तरीका", modeTA:"⏱ टाइम अटैक (60 सेकंड)", modeMatch:"🏆 राउंड मुकाबला (पहले जीतने वाला)",
+      fmtTitle:"चैंपियन बनने के लिए कितनी जीत चाहिए?", win:["1 जीत","2 जीत","3 जीत","5 जीत"],
+      diffTitle:"🎯 कठिनाई", diffEasy:"आसान", diffNormal:"सामान्य", diffHard:"कठिन",
+      start:"खेल शुरू करें", homeTip:"होम (फिर से विकल्प चुनें)", fsTip:"पूर्ण स्क्रीन",
+      penalty:"थोड़ी देर में फिर कोशिश करो!",
+      tagCorrect:"सही जवाब!", tagTimeUp:"समय समाप्त", tagRevealed:"जवाब दिखाया गया", tagFinished:"समाप्त", tagNext:"अगला सवाल!",
+      roundLabel:function(n,f){ return "राउंड "+n+" · पहले "+f+" जीत"; },
+      taLabel:"टाइम अटैक · 60 सेकंड में जितने हो सके उतने सही जवाब दो",
+      timeUpHead:"⏰ समय समाप्त!", timeUpDetail:function(name){ return "किसी ने सही जवाब नहीं दिया। सही जवाब था "+name+"।"; },
+      nextBtn:"अगला राउंड",
+      roundWin:function(team){ return team+" ने राउंड जीता!"; }, answerWas:function(name){ return "सही जवाब था "+name+"।"; },
+      champion:function(team){ return "👑 "+team+" चैंपियन बना!"; }, finalScore:function(a,b){ return "अंतिम स्कोर "+a+" : "+b; },
+      restartBtn:"फिर से खेलें", drawHead:"🤝 बराबरी!", winHead:function(team){ return "👑 "+team+" जीत गया!"; },
+      autoNext:function(n){ return n+" सेकंड में अगला राउंड शुरू होगा..."; },
+      seoTitle:"फोकस किंग | स्पॉटलाइट गेस गेम", seoDesc:"दो टीमों के एक साथ खेलने के लिए एक मजेदार स्पॉटलाइट गेम!", seoKeywords:"फोकस किंग,क्लासरूम गेम,स्पॉटलाइट क्विज़,बच्चों का खेल",
+      searchPh:"खोजें...", noResult:"कोई परिणाम नहीं मिला", toastChanged:"भाषा बदल दी गई है।"
+    },
+    bn: {
+      title:"ফোকাস কিং",
+      sub:"স্পটলাইট দিয়ে তোমার ছবি আলোকিত করে সবার আগে উত্তর বলো!",
+      teamA:"🔴 লাল দল", teamB:"🔵 নীল দল",
+      catTitle:"🗂 একটি বিষয় বেছে নাও! (নিজে বেছে নাও, অথবা সব এলোমেলো)", catAll:"🎲 সব এলোমেলো",
+      catFrog:"ব্যাঙ ও উভচর প্রাণী", catAnimal:"প্রাণী", catPlant:"গাছপালা", catArt:"বিখ্যাত ছবি", catHeritage:"ঐতিহ্য", catCity:"বিশ্বের শহর", catInstrument:"বাদ্যযন্ত্র",
+      modeTitle:"🎮 খেলার ধরন", modeTA:"⏱ টাইম অ্যাটাক (৬০ সেকেন্ড)", modeMatch:"🏆 রাউন্ড লড়াই (আগে যে জেতে)",
+      fmtTitle:"চ্যাম্পিয়ন হতে কতবার জিততে হবে?", win:["১ জয়","২ জয়","৩ জয়","৫ জয়"],
+      diffTitle:"🎯 কঠিনতার মাত্রা", diffEasy:"সহজ", diffNormal:"সাধারণ", diffHard:"কঠিন",
+      start:"খেলা শুরু করো", homeTip:"হোম (আবার অপশন বেছে নাও)", fsTip:"পূর্ণ পর্দা",
+      penalty:"একটু পরে আবার চেষ্টা করো!",
+      tagCorrect:"সঠিক!", tagTimeUp:"সময় শেষ", tagRevealed:"উত্তর দেখানো হলো", tagFinished:"শেষ", tagNext:"পরের প্রশ্ন!",
+      roundLabel:function(n,f){ return "রাউন্ড "+n+" · আগে "+f+" বার জিততে হবে"; },
+      taLabel:"টাইম অ্যাটাক · ৬০ সেকেন্ডে যত পারো সঠিক উত্তর দাও",
+      timeUpHead:"⏰ সময় শেষ!", timeUpDetail:function(name){ return "কেউ সঠিক উত্তর দিতে পারেনি। সঠিক উত্তর ছিল "+name+"।"; },
+      nextBtn:"পরের রাউন্ড",
+      roundWin:function(team){ return team+" এই রাউন্ড জিতেছে!"; }, answerWas:function(name){ return "সঠিক উত্তর ছিল "+name+"।"; },
+      champion:function(team){ return "👑 "+team+" চ্যাম্পিয়ন হলো!"; }, finalScore:function(a,b){ return "চূড়ান্ত স্কোর "+a+" : "+b; },
+      restartBtn:"আবার খেলো", drawHead:"🤝 ড্র হয়েছে!", winHead:function(team){ return "👑 "+team+" জিতেছে!"; },
+      autoNext:function(n){ return n+" সেকেন্ড পরে পরের রাউন্ড শুরু হবে..."; },
+      seoTitle:"ফোকাস কিং | স্পটলাইট গেস গেম", seoDesc:"দুটি দলের একসাথে খেলার জন্য মজার স্পটলাইট গেম!", seoKeywords:"ফোকাস কিং,ক্লাসরুম গেম,স্পটলাইট কুইজ,শিশুদের খেলা",
+      searchPh:"খুঁজুন...", noResult:"কোনো ফলাফল পাওয়া যায়নি", toastChanged:"ভাষা পরিবর্তন করা হয়েছে।"
+    },
+    tr: {
+      title:"Odak Kralı",
+      sub:"Fotoğrafını spot ışığıyla aydınlat ve cevabı ilk sen bil!",
+      teamA:"🔴 Kırmızı Takım", teamB:"🔵 Mavi Takım",
+      catTitle:"🗂 Bir konu seç! (kendin seç ya da hepsi rastgele)", catAll:"🎲 Hepsi Rastgele",
+      catFrog:"Kurbağalar & İki Yaşamlılar", catAnimal:"Hayvanlar", catPlant:"Bitkiler", catArt:"Ünlü Tablolar", catHeritage:"Kültürel Miras", catCity:"Dünya Şehirleri", catInstrument:"Enstrümanlar",
+      modeTitle:"🎮 Oyun Modu", modeTA:"⏱ Zamana Karşı (60 sn)", modeMatch:"🏆 Tur Yarışı (ilk kazanan)",
+      fmtTitle:"Şampiyon olmak için kaç galibiyet gerekiyor?", win:["1 Galibiyet","2 Galibiyet","3 Galibiyet","5 Galibiyet"],
+      diffTitle:"🎯 Zorluk", diffEasy:"Kolay", diffNormal:"Normal", diffHard:"Zor",
+      start:"Oyunu Başlat", homeTip:"Ana Sayfa (seçenekleri yeniden seç)", fsTip:"Tam Ekran",
+      penalty:"Birazdan tekrar dene!",
+      tagCorrect:"Doğru!", tagTimeUp:"Süre Bitti", tagRevealed:"Cevap Açıklandı", tagFinished:"Bitti", tagNext:"Sıradaki Soru!",
+      roundLabel:function(n,f){ return n+". Tur · İlk "+f+" galibiyete ulaşan kazanır"; },
+      taLabel:"Zamana Karşı · 60 saniyede en çok doğruyu bul",
+      timeUpHead:"⏰ Süre Bitti!", timeUpDetail:function(name){ return "Kimse bilemedi. Doğru cevap: "+name+"."; },
+      nextBtn:"Sıradaki Tur",
+      roundWin:function(team){ return team+" turu kazandı!"; }, answerWas:function(name){ return "Doğru cevap: "+name+"."; },
+      champion:function(team){ return "👑 "+team+" Şampiyon!"; }, finalScore:function(a,b){ return "Final Skoru "+a+" : "+b; },
+      restartBtn:"Tekrar Oyna", drawHead:"🤝 Berabere!", winHead:function(team){ return "👑 "+team+" Kazandı!"; },
+      autoNext:function(n){ return n+" saniye sonra sıradaki tura geçilecek..."; },
+      seoTitle:"Odak Kralı | Spot Işığı Tahmin Oyunu", seoDesc:"İki takımın aynı anda oynayabileceği eğlenceli bir spot ışığı oyunu!", seoKeywords:"Odak Kralı,sınıf oyunu,spot ışığı bilmecesi,çocuk oyunu",
+      searchPh:"Ara...", noResult:"Sonuç bulunamadı", toastChanged:"Dil değiştirildi."
+    }
+  };
+
+  /* ============ game state ============ */
+  const state = {
+    mode: 'timeattack',      // 'match' | 'timeattack' (기본값: 타임어택)
+    difficulty: 'normal',    // 'easy' | 'normal' | 'hard'
+    format: 3,
+    teamName: {A:"레드팀", B:"블루팀"},
+    score: {A:0, B:0},
+    roundNum: 1,
+    roundActive: false,      // match 모드: 현재 라운드 진행 중?
+    roundDuration: 30,
+    roundStart: 0,
+    matchActive: false,      // timeattack 모드: 60초 진행 중?
+    matchEnd: 0,
+    penaltyDuration: 5000,
+    sessionId: 0
+  };
+  let selectedCategories = new Set(CATEGORY_KEYS);
+
+  const teamState = {
+    A: {answerName:null, decided:true, penaltyUntil:0, roundStart:0, itemDuration:14, resolving:false},
+    B: {answerName:null, decided:true, penaltyUntil:0, roundStart:0, itemDuration:14, resolving:false}
+  };
+
+  /* =========================================================================
+     효과음 (Web Audio API로 직접 합성 — 외부 음원 파일 불필요)
+     ========================================================================= */
+  let audioCtx = null;
+  function ensureAudio(){
+    if(!audioCtx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(AC){ try{ audioCtx = new AC(); }catch(e){} }
+    }
+    if(audioCtx && audioCtx.state === 'suspended'){ audioCtx.resume().catch(function(){}); }
+    return audioCtx;
+  }
+  function playTone(freq, startOffset, duration, opts){
+    const ctx = ensureAudio();
+    if(!ctx) return;
+    opts = opts || {};
+    try{
+      const startAt = ctx.currentTime + (startOffset || 0);
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = opts.type || 'sine';
+      osc.frequency.setValueAtTime(freq, startAt);
+      if(opts.slideTo) osc.frequency.exponentialRampToValueAtTime(opts.slideTo, startAt + duration);
+      const peak = opts.gain != null ? opts.gain : 0.18;
+      gainNode.gain.setValueAtTime(0.0001, startAt);
+      gainNode.gain.linearRampToValueAtTime(peak, startAt + 0.012);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+      osc.connect(gainNode).connect(ctx.destination);
+      osc.start(startAt);
+      osc.stop(startAt + duration + 0.03);
+    }catch(e){}
+  }
+  const sfx = {
+    tick:function(){ playTone(880, 0, 0.09, {type:'square', gain:0.14}); },
+    go:function(){
+      playTone(660, 0, 0.14, {type:'triangle', gain:0.2});
+      playTone(990, 0.12, 0.24, {type:'triangle', gain:0.22});
+    },
+    warn:function(){ playTone(740, 0, 0.08, {type:'square', gain:0.12}); },
+    correct:function(){
+      playTone(523.25, 0, 0.12, {type:'sine', gain:0.2});
+      playTone(659.25, 0.1, 0.12, {type:'sine', gain:0.2});
+      playTone(783.99, 0.2, 0.24, {type:'sine', gain:0.22});
+    },
+    wrong:function(){ playTone(220, 0, 0.24, {type:'sawtooth', gain:0.16, slideTo:110}); }
+  };
+
+  /* =========================================================================
+     시작 전 3·2·1 카운트다운 (게임 시작 버튼을 눌렀을 때 한 번 재생됩니다)
+     ========================================================================= */
+  const GO_TEXT = {
+    ko:"시작!", en:"GO!", zh:"开始!", ja:"スタート!", es:"¡YA!", fr:"C'EST PARTI !",
+    de:"LOS!", it:"VIA!", "pt-br":"VAI!", ru:"СТАРТ!", hi:"शुरू!", bn:"শুরু!",
+    id:"MULAI!", vi:"BẮT ĐẦU!", th:"เริ่ม!", tr:"BAŞLA!"
+  };
+  let countdownSid = 0;
+  let lastWarnSecs = null;
+  function runCountdown(onDone){
+    ensureAudio();
+    const sid = ++countdownSid;
+    const seq = ['3','2','1', GO_TEXT[currentLang] || GO_TEXT.en];
+    els.countdown.classList.add('show');
+    let i = 0;
+    function step(){
+      if(sid !== countdownSid) return;
+      els.cdNumber.textContent = seq[i];
+      els.cdNumber.classList.remove('pop');
+      void els.cdNumber.offsetWidth;
+      els.cdNumber.classList.add('pop');
+      if(i < 3){ sfx.tick(); } else { sfx.go(); }
+      i++;
+      if(i < seq.length){
+        setTimeout(step, 700);
+      } else {
+        setTimeout(function(){
+          if(sid !== countdownSid) return;
+          els.countdown.classList.remove('show');
+          onDone();
+        }, 650);
+      }
+    }
+    step();
+  }
+  function cancelCountdown(){
+    countdownSid++;
+    els.countdown.classList.remove('show');
+  }
+
+  const els = {
+    setup: document.getElementById('setup'),
+    startbtn: document.getElementById('startbtn'),
+    inputA: document.getElementById('inputA'),
+    inputB: document.getElementById('inputB'),
+    categoryPick: document.getElementById('categoryPick'),
+    modePick: document.getElementById('modePick'),
+    formatWrap: document.getElementById('formatWrap'),
+    formatPick: document.getElementById('formatPick'),
+    diffPick: document.getElementById('diffPick'),
+    nameA: document.getElementById('nameA'),
+    nameB: document.getElementById('nameB'),
+    scoreA: document.getElementById('scoreA'),
+    scoreB: document.getElementById('scoreB'),
+    crownsA: document.getElementById('crownsA'),
+    crownsB: document.getElementById('crownsB'),
+    answersA: document.getElementById('answersA'),
+    answersB: document.getElementById('answersB'),
+    penaltyA: document.getElementById('penaltyA'),
+    penaltyB: document.getElementById('penaltyB'),
+    penaltyTimeA: document.getElementById('penaltyTimeA'),
+    penaltyTimeB: document.getElementById('penaltyTimeB'),
+    photoA: document.getElementById('photoA'),
+    photoB: document.getElementById('photoB'),
+    maskA: document.getElementById('maskA'),
+    maskB: document.getElementById('maskB'),
+    stageA: document.getElementById('stageA'),
+    stageB: document.getElementById('stageB'),
+    glowA: document.getElementById('glowA'),
+    glowB: document.getElementById('glowB'),
+    tagA: document.getElementById('tagA'),
+    tagB: document.getElementById('tagB'),
+    titleA: document.getElementById('titleA'),
+    titleB: document.getElementById('titleB'),
+    timerPill: document.getElementById('timerPill'),
+    crownmark: document.getElementById('crownmark'),
+    roundLabel: document.getElementById('roundLabel'),
+    banner: document.getElementById('banner'),
+    bannerHead: document.getElementById('bannerHead'),
+    bannerDetail: document.getElementById('bannerDetail'),
+    bannerBtn: document.getElementById('bannerBtn'),
+    bannerAuto: document.getElementById('bannerAuto'),
+    homebtn: document.getElementById('homebtn'),
+    fsbtn: document.getElementById('fsbtn'),
+    countdown: document.getElementById('countdown'),
+    cdNumber: document.getElementById('cdNumber')
+  };
+
+  /* ---------- setup screen: 카테고리 선택 UI ---------- */
+  (function buildCategoryChips(){
+    const allBtn = document.createElement('button');
+    allBtn.textContent = '🎲 전체 랜덤';
+    allBtn.dataset.all = '1';
+    els.categoryPick.appendChild(allBtn);
+    CATEGORY_KEYS.forEach(function(key){
+      const def = CATEGORY_DEFS[key];
+      const btn = document.createElement('button');
+      btn.textContent = def.icon + ' ' + def.label;
+      btn.dataset.key = key;
+      els.categoryPick.appendChild(btn);
+    });
+    refreshCategoryChips();
+  })();
+
+  function refreshCategoryChips(){
+    const isAll = selectedCategories.size === CATEGORY_KEYS.length;
+    [...els.categoryPick.children].forEach(function(btn){
+      if(btn.dataset.all){ btn.classList.toggle('sel', isAll); }
+      else{ btn.classList.toggle('sel', selectedCategories.has(btn.dataset.key)); }
+    });
+  }
+
+  els.categoryPick.addEventListener('pointerdown', function(e){
+    const btn = e.target.closest('button'); if(!btn) return;
+    if(btn.dataset.all){
+      selectedCategories = new Set(CATEGORY_KEYS);
+    } else {
+      const key = btn.dataset.key;
+      if(selectedCategories.has(key)){
+        if(selectedCategories.size > 1) selectedCategories.delete(key);
+      } else {
+        selectedCategories.add(key);
+      }
+    }
+    refreshCategoryChips();
+  });
+
+  /* ---------- setup screen: 게임 방식 / 승수 / 난이도 ---------- */
+  els.modePick.addEventListener('pointerdown', function(e){
+    const btn = e.target.closest('button'); if(!btn) return;
+    [...els.modePick.children].forEach(function(b){ b.classList.remove('sel'); });
+    btn.classList.add('sel');
+    state.mode = btn.dataset.mode;
+    els.formatWrap.style.display = (state.mode === 'match') ? '' : 'none';
+  });
+
+  els.formatPick.addEventListener('pointerdown', function(e){
+    const btn = e.target.closest('button'); if(!btn) return;
+    [...els.formatPick.children].forEach(function(b){ b.classList.remove('sel'); });
+    btn.classList.add('sel');
+    state.format = parseInt(btn.dataset.n, 10);
+  });
+
+  els.diffPick.addEventListener('pointerdown', function(e){
+    const btn = e.target.closest('button'); if(!btn) return;
+    [...els.diffPick.children].forEach(function(b){ b.classList.remove('sel'); });
+    btn.classList.add('sel');
+    state.difficulty = btn.dataset.d;
+  });
+
+  /* ---------- 홈 버튼 / 전체화면 버튼 ----------
+     전체화면 상태라면 새로고침 대신 화면만 초기화해 전체화면을 유지하고,
+     전체화면이 아니라면 그냥 새로고침해서 완전히 깨끗한 상태로 되돌립니다. */
+  els.homebtn.addEventListener('pointerdown', goHome);
+  function goHome(){
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if(!fsEl){
+      location.reload();
+      return;
+    }
+    state.sessionId += 1;
+    state.roundActive = false;
+    state.matchActive = false;
+    clearBannerAuto();
+    cancelCountdown();
+    els.banner.classList.remove('show');
+    els.setup.style.display = 'flex';
+    showLangTrigger();
+  }
+
+  els.fsbtn.addEventListener('pointerdown', toggleFullscreen);
+  function toggleFullscreen(){
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if(!fsEl){
+      const el = document.documentElement;
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      if(req) req.call(el);
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+      if(exit) exit.call(document);
+    }
+  }
+
+  /* ---------- 게임 시작 ---------- */
+  els.startbtn.addEventListener('pointerdown', function(){
+    state.teamName.A = els.inputA.value.trim() || "레드팀";
+    state.teamName.B = els.inputB.value.trim() || "블루팀";
+    els.nameA.textContent = state.teamName.A;
+    els.nameB.textContent = state.teamName.B;
+    state.score.A = 0; state.score.B = 0;
+    updateScores();
+
+    state.sessionId += 1;
+    resetQueues();
+    els.setup.style.display = 'none';
+    hideLangTrigger();
+    els.banner.classList.remove('show');
+
+    if(state.mode === 'match'){
+      els.crownmark.textContent = '👑';
+      els.crownsA.style.display = '';
+      els.crownsB.style.display = '';
+      buildCrowns();
+      state.penaltyDuration = 5000;
+      state.roundNum = 1;
+      runCountdown(startRoundMatch);
+    } else {
+      els.crownmark.textContent = '⏱';
+      els.crownsA.style.display = 'none';
+      els.crownsB.style.display = 'none';
+      state.penaltyDuration = 3000;
+      runCountdown(startTimeAttack);
+    }
+  });
+
+  function buildCrowns(){
+    els.crownsA.innerHTML = ''; els.crownsB.innerHTML = '';
+    for(let i=0;i<state.format;i++){
+      const s1 = document.createElement('span'); s1.textContent='👑';
+      const s2 = document.createElement('span'); s2.textContent='👑';
+      els.crownsA.appendChild(s1); els.crownsB.appendChild(s2);
+    }
+  }
+  function updateScores(){
+    els.scoreA.textContent = state.score.A;
+    els.scoreB.textContent = state.score.B;
+    [...els.crownsA.children].forEach((el,i)=> el.classList.toggle('won', i < state.score.A));
+    [...els.crownsB.children].forEach((el,i)=> el.classList.toggle('won', i < state.score.B));
+  }
+
+  /* ---------- spotlight physics ---------- */
+  function makeSpotlight(){
+    return {cx:null, cy:null, tx:null, ty:null, w:0, h:0,
+      minR:0.05, maxR:0.42, minSpeed:0.02, maxSpeed:0.16};
+  }
+  const spot = {A: makeSpotlight(), B: makeSpotlight()};
+
+  function applyDifficulty(sp){
+    const p = DIFFICULTY_PRESETS[state.difficulty] || DIFFICULTY_PRESETS.normal;
+    sp.minR = p.minR; sp.maxR = p.maxR;
+  }
+
+  function resizeCanvas(canvasEl, sp){
+    const rect = canvasEl.parentElement.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvasEl.width = rect.width * dpr;
+    canvasEl.height = rect.height * dpr;
+    canvasEl.style.width = rect.width + 'px';
+    canvasEl.style.height = rect.height + 'px';
+    sp.w = rect.width; sp.h = rect.height;
+    sp.cx = sp.tx = rect.width/2; sp.cy = sp.ty = rect.height/2;
+  }
+
+  function setupStagePointer(stageEl, sp, teamKey){
+    let activeId = null;
+    function isLive(){
+      return state.mode === 'match' ? state.roundActive : (state.matchActive && !teamState[teamKey].decided);
+    }
+    function updateTarget(e){
+      const rect = stageEl.getBoundingClientRect();
+      sp.tx = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+      sp.ty = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+    }
+    stageEl.addEventListener('pointerdown', (e)=>{
+      e.preventDefault();
+      if(!isLive()) return;
+      activeId = e.pointerId;
+      try{ stageEl.setPointerCapture(e.pointerId); }catch(err){}
+      updateTarget(e);
+    }, {passive:false});
+    stageEl.addEventListener('pointermove', (e)=>{
+      if(!isLive()) return;
+      if(e.pointerId !== activeId) return;
+      e.preventDefault();
+      updateTarget(e);
+    }, {passive:false});
+    stageEl.addEventListener('pointerup', (e)=>{
+      if(e.pointerId === activeId) activeId = null;
+    });
+    stageEl.addEventListener('pointercancel', (e)=>{
+      if(e.pointerId === activeId) activeId = null;
+    });
+  }
+  setupStagePointer(els.stageA, spot.A, 'A');
+  setupStagePointer(els.stageB, spot.B, 'B');
+
+  function drawMask(canvasEl, sp, elapsedFrac){
+    const ctx = canvasEl.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = sp.w, h = sp.h;
+    if(w<=0||h<=0) return;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle = '#05061a';
+    ctx.fillRect(0,0,w,h);
+
+    const speed = sp.minSpeed + (sp.maxSpeed - sp.minSpeed) * elapsedFrac;
+    sp.cx += (sp.tx - sp.cx) * speed;
+    sp.cy += (sp.ty - sp.cy) * speed;
+
+    const rFrac = sp.minR + (sp.maxR - sp.minR) * elapsedFrac;
+    const r = rFrac * Math.min(w,h);
+
+    ctx.globalCompositeOperation = 'destination-out';
+    const grad = ctx.createRadialGradient(sp.cx, sp.cy, r*0.55, sp.cx, sp.cy, r);
+    grad.addColorStop(0, 'rgba(0,0,0,1)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(sp.cx, sp.cy, r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  function clearMask(canvasEl, sp){
+    const ctx = canvasEl.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,sp.w,sp.h);
+  }
+
+  /* ---------- 문제 출제 helpers ---------- */
+  function pickCategoryKey(){
+    const keys = selectedCategories.size ? [...selectedCategories] : CATEGORY_KEYS;
+    return keys[Math.floor(Math.random()*keys.length)];
+  }
+
+  // 카테고리별 "안 나온 문제부터" 큐. 다 쓰면 다시 섞어서 채우므로
+  // 이미 나온 문제는 그 카테고리의 나머지 문제를 다 쓸 때까지 최대한 뒤로 밀립니다.
+  const categoryQueues = {};
+  function shuffleArray(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+  function resetQueues(){
+    Object.keys(categoryQueues).forEach(function(k){ delete categoryQueues[k]; });
+  }
+  function pickNextItem(catKey){
+    let queue = categoryQueues[catKey];
+    if(!queue || queue.length === 0){
+      queue = shuffleArray(CATEGORY_DEFS[catKey].items);
+      categoryQueues[catKey] = queue;
+    }
+    const it = queue.shift();
+    return {file:it.file, name:it.name, dir:CATEGORY_DEFS[catKey].dir, categoryKey:catKey};
+  }
+  function setPhoto(team, item){
+    const layer = team==='A' ? els.photoA : els.photoB;
+    layer.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = item.dir + '/' + item.file;
+    img.alt = '';
+    img.draggable = false;
+    layer.appendChild(img);
+  }
+  function buildOptions(catKey, correctName){
+    const items = CATEGORY_DEFS[catKey].items;
+    const names = items.map(function(i){ return i.name; });
+    const pool = names.filter(function(n){ return n !== correctName; });
+    const shuffled = pool.sort(()=>Math.random()-0.5);
+    const count = Math.min(14, pool.length + 1);
+    const chosen = shuffled.slice(0, Math.max(0, count-1));
+    return [...chosen, correctName].sort(()=>Math.random()-0.5);
+  }
+  function renderAnswers(container, options, team){
+    container.innerHTML = '';
+    container.style.gridTemplateColumns = 'repeat(' + Math.max(1, Math.ceil(options.length/2)) + ', 1fr)';
+    options.forEach(function(name){
+      const btn = document.createElement('button');
+      btn.className = 'ansbtn';
+      btn.textContent = name;
+      btn.addEventListener('pointerdown', ()=> onAnswer(team, name, btn));
+      container.appendChild(btn);
+    });
+  }
+  function setAnswersDisabled(team, disabled){
+    const container = team==='A'? els.answersA: els.answersB;
+    [...container.children].forEach(b=> b.disabled = disabled);
+  }
+  function revealFull(team, tagText){
+    const sp = team==='A'? spot.A: spot.B;
+    const canvas = team==='A'? els.maskA: els.maskB;
+    clearMask(canvas, sp);
+    const tagEl = team==='A'? els.tagA: els.tagB;
+    tagEl.textContent = tagText || T.tagCorrect;
+    tagEl.classList.add('show');
+    const titleEl = team==='A'? els.titleA: els.titleB;
+    titleEl.textContent = teamState[team].answerName || '';
+    titleEl.classList.add('show');
+  }
+
+  /* ---------- 답변 처리 ---------- */
+  function onAnswer(team, picked, btnEl){
+    const now = performance.now();
+    const tm = teamState[team];
+    if(state.mode === 'match'){
+      if(!state.roundActive || tm.decided) return;
+      if(now < tm.penaltyUntil) return;
+      if(picked === tm.answerName){
+        btnEl.classList.add('correct');
+        tm.decided = true;
+        revealFull(team, T.tagCorrect);
+        sfx.correct();
+        state.score[team] += 1;
+        updateScores();
+        const sid = state.sessionId;
+        setTimeout(()=>{ if(sid !== state.sessionId) return; finishRound(team); }, 2000);
+      } else {
+        wrongFlow(team, btnEl, now);
+      }
+    } else {
+      if(!state.matchActive || tm.decided || tm.resolving) return;
+      if(now < tm.penaltyUntil) return;
+      if(picked === tm.answerName){
+        btnEl.classList.add('correct');
+        tm.decided = true; tm.resolving = true;
+        revealFull(team, T.tagCorrect);
+        sfx.correct();
+        state.score[team] += 1;
+        updateScores();
+        setAnswersDisabled(team, true);
+        const sid = state.sessionId;
+        setTimeout(()=>{ if(sid !== state.sessionId || !state.matchActive) return; startTeamItem(team); }, 2000);
+      } else {
+        wrongFlow(team, btnEl, now);
+      }
+    }
+  }
+  function wrongFlow(team, btnEl, now){
+    btnEl.classList.add('wrong');
+    sfx.wrong();
+    setTimeout(()=> btnEl.classList.remove('wrong'), 300);
+    teamState[team].penaltyUntil = now + state.penaltyDuration;
+    setAnswersDisabled(team, true);
+  }
+
+  /* ---------- 라운드 배너 자동 진행 (3초 타이머) ---------- */
+  let bannerAutoTimer = null;
+  let bannerAutoInterval = null;
+  function clearBannerAuto(){
+    if(bannerAutoTimer){ clearTimeout(bannerAutoTimer); bannerAutoTimer = null; }
+    if(bannerAutoInterval){ clearInterval(bannerAutoInterval); bannerAutoInterval = null; }
+    els.bannerAuto.textContent = '';
+  }
+  function armBannerAuto(seconds, action){
+    clearBannerAuto();
+    const sid = state.sessionId;
+    let remain = seconds;
+    els.bannerAuto.textContent = T.autoNext(remain);
+    bannerAutoInterval = setInterval(()=>{
+      remain -= 1;
+      if(remain <= 0) return;
+      els.bannerAuto.textContent = T.autoNext(remain);
+    }, 1000);
+    bannerAutoTimer = setTimeout(()=>{
+      clearBannerAuto();
+      if(sid !== state.sessionId) return;
+      action();
+    }, seconds*1000);
+  }
+
+  /* ---------- 라운드 대결(선승제) 모드 ---------- */
+  function startRoundMatch(){
+    const catKey = pickCategoryKey();
+    const item = pickNextItem(catKey);
+
+    teamState.A = {answerName:item.name, decided:false, penaltyUntil:0, roundStart:0, itemDuration:0, resolving:false};
+    teamState.B = {answerName:item.name, decided:false, penaltyUntil:0, roundStart:0, itemDuration:0, resolving:false};
+
+    setPhoto('A', item);
+    setPhoto('B', item);
+    els.tagA.classList.remove('show');
+    els.tagB.classList.remove('show');
+    els.titleA.classList.remove('show');
+    els.titleB.classList.remove('show');
+    els.glowA.classList.remove('show');
+    els.glowB.classList.remove('show');
+
+    const options = buildOptions(catKey, item.name);
+    renderAnswers(els.answersA, options, 'A');
+    renderAnswers(els.answersB, options, 'B');
+    setAnswersDisabled('A', false);
+    setAnswersDisabled('B', false);
+
+    applyDifficulty(spot.A); applyDifficulty(spot.B);
+    resizeCanvas(els.maskA, spot.A);
+    resizeCanvas(els.maskB, spot.B);
+
+    els.roundLabel.textContent = T.roundLabel(state.roundNum, state.format);
+
+    state.roundStart = performance.now();
+    state.roundDuration = 30;
+    state.roundActive = true;
+    lastWarnSecs = null;
+    clearBannerAuto();
+    els.banner.classList.remove('show');
+  }
+
+  function endRoundTimeout(){
+    state.roundActive = false;
+    revealFull('A', T.tagTimeUp); revealFull('B', T.tagTimeUp);
+    els.bannerHead.textContent = T.timeUpHead;
+    els.bannerDetail.textContent = T.timeUpDetail(teamState.A.answerName);
+    els.bannerBtn.textContent = T.nextBtn;
+    els.banner.classList.add('show');
+    els.bannerBtn.onpointerdown = ()=>{ clearBannerAuto(); nextRoundOrEnd(); };
+    armBannerAuto(3, nextRoundOrEnd);
+  }
+
+  function finishRound(winnerTeam){
+    if(!state.roundActive) return;
+    state.roundActive = false;
+    revealFull(winnerTeam, T.tagCorrect);
+    const loser = winnerTeam==='A' ? 'B' : 'A';
+    revealFull(loser, T.tagRevealed);
+    (winnerTeam==='A'? els.glowA: els.glowB).classList.add('show');
+
+    if(state.score[winnerTeam] >= state.format){
+      els.bannerHead.textContent = T.champion(state.teamName[winnerTeam]);
+      els.bannerDetail.textContent = T.finalScore(state.score.A, state.score.B);
+      els.bannerBtn.textContent = T.restartBtn;
+      els.banner.classList.add('show');
+      els.bannerBtn.onpointerdown = ()=>{ clearBannerAuto(); els.banner.classList.remove('show'); els.setup.style.display='flex'; showLangTrigger(); };
+    } else {
+      els.bannerHead.textContent = T.roundWin(state.teamName[winnerTeam]);
+      els.bannerDetail.textContent = T.answerWas(teamState[winnerTeam].answerName);
+      els.bannerBtn.textContent = T.nextBtn;
+      els.banner.classList.add('show');
+      els.bannerBtn.onpointerdown = ()=>{ clearBannerAuto(); nextRoundOrEnd(); };
+      armBannerAuto(3, nextRoundOrEnd);
+    }
+  }
+
+  function nextRoundOrEnd(){
+    state.roundNum += 1;
+    startRoundMatch();
+  }
+
+  /* ---------- 타임어택(60초) 모드 ---------- */
+  function startTimeAttack(){
+    state.matchActive = true;
+    state.matchEnd = performance.now() + 60000;
+    lastWarnSecs = null;
+    els.roundLabel.textContent = T.taLabel;
+    startTeamItem('A');
+    startTeamItem('B');
+  }
+
+  function startTeamItem(team){
+    const catKey = pickCategoryKey();
+    const item = pickNextItem(catKey);
+    const tm = teamState[team];
+    tm.answerName = item.name;
+    tm.decided = false;
+    tm.resolving = false;
+    tm.penaltyUntil = 0;
+    tm.itemDuration = 14;
+    tm.roundStart = performance.now();
+
+    setPhoto(team, item);
+    const tagEl = team==='A'? els.tagA: els.tagB;
+    const titleEl = team==='A'? els.titleA: els.titleB;
+    const glowEl = team==='A'? els.glowA: els.glowB;
+    tagEl.classList.remove('show');
+    titleEl.classList.remove('show');
+    glowEl.classList.remove('show');
+
+    const container = team==='A'? els.answersA: els.answersB;
+    renderAnswers(container, buildOptions(catKey, item.name), team);
+    setAnswersDisabled(team, false);
+
+    const sp = team==='A'? spot.A: spot.B;
+    const canvas = team==='A'? els.maskA: els.maskB;
+    applyDifficulty(sp);
+    resizeCanvas(canvas, sp);
+  }
+
+  function finishTimeAttack(){
+    state.matchActive = false;
+    revealFull('A', T.tagFinished); revealFull('B', T.tagFinished);
+    setAnswersDisabled('A', true);
+    setAnswersDisabled('B', true);
+    let head;
+    if(state.score.A === state.score.B){ head = T.drawHead; }
+    else{ const w = state.score.A > state.score.B ? 'A' : 'B'; head = T.winHead(state.teamName[w]); }
+    els.bannerHead.textContent = head;
+    els.bannerDetail.textContent = state.teamName.A + ' ' + state.score.A + ' : ' + state.score.B + ' ' + state.teamName.B;
+    els.bannerBtn.textContent = T.restartBtn;
+    els.banner.classList.add('show');
+    els.bannerBtn.onpointerdown = ()=>{ clearBannerAuto(); els.banner.classList.remove('show'); els.setup.style.display='flex'; showLangTrigger(); };
+  }
+
+  /* ---------- main loop ---------- */
+  let rafId = null;
+  function loop(){
+    rafId = requestAnimationFrame(loop);
+    const now = performance.now();
+
+    if(state.mode === 'match'){
+      let frac = 0;
+      if(state.roundActive) frac = Math.min(1, (now - state.roundStart) / (state.roundDuration*1000));
+      if(!teamState.A.decided) drawMask(els.maskA, spot.A, frac);
+      if(!teamState.B.decided) drawMask(els.maskB, spot.B, frac);
+      if(state.roundActive){
+        const remain = Math.max(0, state.roundDuration - (now - state.roundStart)/1000);
+        const secs = Math.ceil(remain);
+        els.timerPill.textContent = secs;
+        els.timerPill.classList.toggle('warn', secs <= 5);
+        if(secs <= 5 && secs >= 1 && secs !== lastWarnSecs){ sfx.warn(); lastWarnSecs = secs; }
+        if(remain <= 0){ endRoundTimeout(); }
+      }
+    } else {
+      if(state.matchActive){
+        const remain = Math.max(0, (state.matchEnd - now)/1000);
+        const secs = Math.ceil(remain);
+        els.timerPill.textContent = secs;
+        els.timerPill.classList.toggle('warn', secs <= 10);
+        if(secs <= 5 && secs >= 1 && secs !== lastWarnSecs){ sfx.warn(); lastWarnSecs = secs; }
+        if(remain <= 0){ finishTimeAttack(); }
+      }
+      ['A','B'].forEach(function(team){
+        const tm = teamState[team];
+        const sp = team==='A'? spot.A: spot.B;
+        const canvas = team==='A'? els.maskA: els.maskB;
+        if(state.matchActive && !tm.decided){
+          const frac = Math.min(1, (now - tm.roundStart) / (tm.itemDuration*1000));
+          drawMask(canvas, sp, frac);
+          if(frac >= 1 && !tm.resolving){
+            tm.resolving = true;
+            setAnswersDisabled(team, true);
+            revealFull(team, T.tagNext);
+            const sid = state.sessionId;
+            setTimeout(()=>{ if(sid !== state.sessionId || !state.matchActive) return; startTeamItem(team); }, 500);
+          }
+        }
+      });
+    }
+
+    // penalty countdown UI (공통)
+    ['A','B'].forEach(team=>{
+      const tm = teamState[team];
+      const until = tm.penaltyUntil;
+      const pEl = team==='A'? els.penaltyA: els.penaltyB;
+      const tEl = team==='A'? els.penaltyTimeA: els.penaltyTimeB;
+      if(until && now < until){
+        pEl.classList.add('show');
+        tEl.textContent = Math.ceil((until-now)/1000);
+      } else if(pEl.classList.contains('show')){
+        pEl.classList.remove('show');
+        if(!tm.decided) setAnswersDisabled(team, false);
+      }
+    });
+  }
+
+  window.addEventListener('resize', ()=>{
+    if(state.mode === 'match' && state.roundActive){
+      resizeCanvas(els.maskA, spot.A);
+      resizeCanvas(els.maskB, spot.B);
+    } else if(state.mode === 'timeattack' && state.matchActive){
+      if(!teamState.A.decided) resizeCanvas(els.maskA, spot.A);
+      if(!teamState.B.decided) resizeCanvas(els.maskB, spot.B);
+    }
+  });
+
+  /* =========================================================================
+     언어 선택 UI 로직 (게임 로직과는 완전히 별개 — 오직 화면 문구만 갱신합니다)
+     ========================================================================= */
+  const lmEls = {
+    trigger: document.getElementById('lmTrigger'),
+    flag: document.getElementById('lmCurrentFlag'),
+    name: document.getElementById('lmCurrentName'),
+    modal: document.getElementById('lmModal'),
+    close: document.getElementById('lmClose'),
+    search: document.getElementById('lmSearch'),
+    grid: document.getElementById('lmGrid'),
+    noResult: document.getElementById('lmNoResult'),
+    toast: document.getElementById('lmToast'),
+    toastMsg: document.getElementById('lmToastMsg'),
+    toastLang: document.getElementById('lmToastLang')
+  };
+
+  let currentLang = 'en';
+  let T = I18N.en;
+  let lastDefaultA = null, lastDefaultB = null;
+  let toastTimer = null;
+
+  function showLangTrigger(){ lmEls.trigger.classList.remove('lm-hidden'); }
+  function hideLangTrigger(){ lmEls.trigger.classList.add('lm-hidden'); }
+
+  // 화면 크기에 맞춰 폭을 넘는 텍스트만 글자 크기를 줄입니다 (게임 화면 폰트에는 영향 없음)
+  function autoFit(el, maxWidthPx, minPx, startPx){
+    if(!el) return;
+    el.style.fontSize = startPx + 'px';
+    let size = startPx;
+    let guard = 0;
+    while(el.scrollWidth > maxWidthPx && size > minPx && guard < 30){
+      size -= 1;
+      el.style.fontSize = size + 'px';
+      guard++;
+    }
+  }
+  function autoFitChipGroup(container){
+    if(!container) return;
+    [...container.children].forEach(function(btn){
+      btn.style.fontSize = '';
+      requestAnimationFrame(function(){
+        if(btn.scrollWidth > btn.clientWidth + 2){
+          let size = parseFloat(getComputedStyle(btn).fontSize);
+          let guard = 0;
+          while(btn.scrollWidth > btn.clientWidth + 2 && size > 9 && guard < 20){
+            size -= 1;
+            btn.style.fontSize = size + 'px';
+            guard++;
+          }
+        }
+      });
+    });
+  }
+
+  function detectInitialLang(){
+    try{
+      const params = new URLSearchParams(location.search);
+      const urlLang = params.get('lang');
+      if(urlLang && LM_SUPPORTED.indexOf(urlLang.toLowerCase()) !== -1) return urlLang.toLowerCase();
+    }catch(e){}
+    try{
+      const saved = localStorage.getItem(LM_STORAGE_KEY);
+      if(saved && LM_SUPPORTED.indexOf(saved) !== -1) return saved;
+    }catch(e){}
+    try{
+      const nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+      if(LM_SUPPORTED.indexOf(nav) !== -1) return nav;
+      const short = nav.split('-')[0];
+      const match = LM_SUPPORTED.find(function(l){ return l.split('-')[0] === short; });
+      if(match) return match;
+    }catch(e){}
+    return 'en';
+  }
+
+  function applyLanguage(code, opts){
+    opts = opts || {};
+    if(!I18N[code]) code = 'en';
+    currentLang = code;
+    T = I18N[code];
+
+    if(code === 'ko'){
+      els_appTitleMain().textContent = '포커스킹';
+      const sub = els_appTitleSub();
+      sub.style.display = '';
+      sub.textContent = 'FOCUS KING';
+    } else {
+      els_appTitleMain().textContent = T.title;
+      els_appTitleSub().style.display = 'none';
+    }
+    document.getElementById('setupSub').textContent = T.sub;
+
+    if(lastDefaultA === null || els.inputA.value === lastDefaultA) els.inputA.value = T.teamA;
+    lastDefaultA = T.teamA;
+    if(lastDefaultB === null || els.inputB.value === lastDefaultB) els.inputB.value = T.teamB;
+    lastDefaultB = T.teamB;
+
+    document.getElementById('catSectionTitle').textContent = T.catTitle;
+    const CAT_KEY_MAP = {frog:'catFrog', animal:'catAnimal', plant:'catPlant', art:'catArt', heritage:'catHeritage', city:'catCity', instrument:'catInstrument'};
+    [...els.categoryPick.children].forEach(function(btn){
+      if(btn.dataset.all){ btn.textContent = T.catAll; }
+      else{
+        const def = CATEGORY_DEFS[btn.dataset.key];
+        btn.textContent = def.icon + ' ' + T[CAT_KEY_MAP[btn.dataset.key]];
+      }
+    });
+
+    document.getElementById('modeSectionTitle').textContent = T.modeTitle;
+    const modeMatchBtn = els.modePick.querySelector('[data-mode="match"]');
+    const modeTABtn = els.modePick.querySelector('[data-mode="timeattack"]');
+    if(modeMatchBtn) modeMatchBtn.textContent = T.modeMatch;
+    if(modeTABtn) modeTABtn.textContent = T.modeTA;
+
+    document.getElementById('fmtSectionTitle').textContent = T.fmtTitle;
+    [...els.formatPick.children].forEach(function(btn, i){ if(T.win[i]) btn.textContent = T.win[i]; });
+
+    document.getElementById('diffSectionTitle').textContent = T.diffTitle;
+    const diffEasyBtn = els.diffPick.querySelector('[data-d="easy"]');
+    const diffNormalBtn = els.diffPick.querySelector('[data-d="normal"]');
+    const diffHardBtn = els.diffPick.querySelector('[data-d="hard"]');
+    if(diffEasyBtn) diffEasyBtn.textContent = T.diffEasy;
+    if(diffNormalBtn) diffNormalBtn.textContent = T.diffNormal;
+    if(diffHardBtn) diffHardBtn.textContent = T.diffHard;
+
+    els.startbtn.textContent = T.start;
+    els.homebtn.title = T.homeTip;
+    els.fsbtn.title = T.fsTip;
+    document.querySelectorAll('.penalty .small').forEach(function(el){ el.textContent = T.penalty; });
+
+    const langDef = LM_LANGS.find(function(l){ return l.code === code; }) || LM_LANGS[1];
+    lmEls.flag.src = 'https://flagcdn.com/w40/' + langDef.country + '.png';
+    lmEls.name.textContent = langDef.native;
+    autoFit(lmEls.name, 120, 9, 13);
+
+    document.getElementById('seoTitleTag').textContent = T.seoTitle;
+    document.getElementById('seoDescTag').setAttribute('content', T.seoDesc);
+    document.getElementById('seoKeywordsTag').setAttribute('content', T.seoKeywords);
+    document.documentElement.setAttribute('lang', code);
+
+    autoFitChipGroup(els.categoryPick);
+    autoFitChipGroup(els.modePick);
+    autoFitChipGroup(els.formatPick);
+    autoFitChipGroup(els.diffPick);
+
+    if(!opts.skipPersist){
+      try{ localStorage.setItem(LM_STORAGE_KEY, code); }catch(e){}
+    }
+    if(!opts.skipHistory){
+      try{
+        const url = new URL(location.href);
+        url.searchParams.set('lang', code);
+        history.pushState({}, '', url);
+      }catch(e){}
+    }
+    renderLanguages(lmEls.search.value);
+  }
+  function els_appTitleMain(){ return document.getElementById('appTitleMain'); }
+  function els_appTitleSub(){ return document.getElementById('appTitleSub'); }
+
+  // 언어 카드 목록을 그려주는 함수 (검색어로 필터링). 반드시 최초 1회 호출되어야 합니다.
+  function renderLanguages(filterText){
+    filterText = (filterText || '').toLowerCase();
+    lmEls.grid.innerHTML = '';
+    const filtered = LM_LANGS.filter(function(l){
+      return l.native.toLowerCase().indexOf(filterText) !== -1 ||
+             l.en.toLowerCase().indexOf(filterText) !== -1 ||
+             l.code.toLowerCase().indexOf(filterText) !== -1;
+    });
+    if(filtered.length === 0){
+      lmEls.grid.style.display = 'none';
+      lmEls.noResult.classList.add('lm-show');
+      return;
+    }
+    lmEls.grid.style.display = '';
+    lmEls.noResult.classList.remove('lm-show');
+    filtered.forEach(function(lang){
+      const isSelected = lang.code === currentLang;
+      const card = document.createElement('div');
+      card.className = 'lm-card' + (isSelected ? ' lm-selected' : '');
+      card.innerHTML =
+        '<img class="lm-cardflag" src="https://flagcdn.com/w40/' + lang.country + '.png" alt="" onerror="this.style.visibility=\'hidden\'">' +
+        '<div class="lm-cardtext">' +
+          '<span class="lm-cardname">' + lang.native + '</span>' +
+          '<span class="lm-cardsub">' + lang.en + '</span>' +
+        '</div>' +
+        (isSelected ? '<i class="fa-solid fa-circle-check lm-check" aria-hidden="true"></i>' : '');
+      card.addEventListener('pointerdown', function(){ selectLanguage(lang); });
+      lmEls.grid.appendChild(card);
+    });
+  }
+
+  function openModal(){
+    lmEls.modal.classList.add('lm-active');
+    lmEls.modal.setAttribute('aria-hidden', 'false');
+    renderLanguages(lmEls.search.value);
+    setTimeout(function(){ lmEls.search.focus(); }, 80);
+  }
+  function closeModal(){
+    lmEls.modal.classList.remove('lm-active');
+    lmEls.modal.setAttribute('aria-hidden', 'true');
+  }
+  function selectLanguage(lang){
+    applyLanguage(lang.code);
+    closeModal();
+    showToast(lang);
+  }
+  function showToast(lang){
+    lmEls.toastMsg.textContent = T.toastChanged;
+    lmEls.toastLang.textContent = lang.en;
+    lmEls.toast.classList.add('lm-show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ lmEls.toast.classList.remove('lm-show'); }, 3000);
+  }
+
+  lmEls.trigger.addEventListener('pointerdown', openModal);
+  lmEls.close.addEventListener('pointerdown', closeModal);
+  lmEls.modal.addEventListener('pointerdown', function(e){ if(e.target === lmEls.modal) closeModal(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && lmEls.modal.classList.contains('lm-active')) closeModal();
+  });
+  lmEls.search.addEventListener('input', function(e){ renderLanguages(e.target.value); });
+
+  window.addEventListener('popstate', function(){
+    const params = new URLSearchParams(location.search);
+    const urlLang = params.get('lang');
+    if(urlLang && LM_SUPPORTED.indexOf(urlLang.toLowerCase()) !== -1){
+      applyLanguage(urlLang.toLowerCase(), {skipHistory:true});
+    }
+  });
+
+  applyLanguage(detectInitialLang(), {skipHistory:true});
+  renderLanguages();
+  showLangTrigger();
+
+  /* =========================================================================
+     전자칠판/멀티터치 하드닝: 확대(핀치·더블탭·Ctrl+휠) 및 우클릭·롱프레스 메뉴 차단
+     ========================================================================= */
+  document.addEventListener('contextmenu', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, {passive:false});
+  document.addEventListener('wheel', function(e){ if(e.ctrlKey) e.preventDefault(); }, {passive:false});
+  document.addEventListener('touchmove', function(e){ if(e.touches && e.touches.length > 1) e.preventDefault(); }, {passive:false});
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', function(e){
+    const now = Date.now();
+    if(now - lastTouchEnd <= 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, {passive:false});
+
+  loop();
+})();
+</script>
+</body>
+</html>
