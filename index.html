@@ -1,13 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5YW0T2C109"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-5YW0T2C109');
-    </script>
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title id="seoTitleTag">포커스킹 FOCUS KING</title>
@@ -301,28 +294,6 @@
     padding:10px 24px; cursor:pointer;
   }
   #banner .autonext{color:var(--ink-dim); font-size:clamp(10px,1.4vw,13px); margin-top:10px; min-height:1.2em;}
-
-  /* ---------- 시작 전 3·2·1 카운트다운 ---------- */
-  #countdown{
-    position:absolute; inset:0; z-index:95;
-    display:none; align-items:center; justify-content:center;
-    background:rgba(5,6,26,.62);
-    pointer-events:none;
-  }
-  #countdown.show{display:flex;}
-  .cd-number{
-    font-family:'Jua'; color:var(--gold);
-    font-size:clamp(60px,16vw,180px);
-    text-shadow:0 0 40px rgba(244,201,76,.65), 0 8px 0 rgba(0,0,0,.35);
-    opacity:0;
-  }
-  .cd-number.pop{animation:cdpop .7s cubic-bezier(.2,.9,.3,1.3);}
-  @keyframes cdpop{
-    0%{opacity:0; transform:scale(.4);}
-    35%{opacity:1; transform:scale(1.15);}
-    60%{transform:scale(1);}
-    100%{opacity:0; transform:scale(1);}
-  }
 </style>
 
 <!-- ==========================================================================
@@ -527,10 +498,6 @@
         <button id="bannerBtn">다음 라운드</button>
         <div class="autonext" id="bannerAuto"></div>
       </div>
-    </div>
-
-    <div id="countdown">
-      <div class="cd-number" id="cdNumber">3</div>
     </div>
 
     <div id="setup">
@@ -1263,94 +1230,6 @@
     B: {answerName:null, decided:true, penaltyUntil:0, roundStart:0, itemDuration:14, resolving:false}
   };
 
-  /* =========================================================================
-     효과음 (Web Audio API로 직접 합성 — 외부 음원 파일 불필요)
-     ========================================================================= */
-  let audioCtx = null;
-  function ensureAudio(){
-    if(!audioCtx){
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if(AC){ try{ audioCtx = new AC(); }catch(e){} }
-    }
-    if(audioCtx && audioCtx.state === 'suspended'){ audioCtx.resume().catch(function(){}); }
-    return audioCtx;
-  }
-  function playTone(freq, startOffset, duration, opts){
-    const ctx = ensureAudio();
-    if(!ctx) return;
-    opts = opts || {};
-    try{
-      const startAt = ctx.currentTime + (startOffset || 0);
-      const osc = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-      osc.type = opts.type || 'sine';
-      osc.frequency.setValueAtTime(freq, startAt);
-      if(opts.slideTo) osc.frequency.exponentialRampToValueAtTime(opts.slideTo, startAt + duration);
-      const peak = opts.gain != null ? opts.gain : 0.18;
-      gainNode.gain.setValueAtTime(0.0001, startAt);
-      gainNode.gain.linearRampToValueAtTime(peak, startAt + 0.012);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-      osc.connect(gainNode).connect(ctx.destination);
-      osc.start(startAt);
-      osc.stop(startAt + duration + 0.03);
-    }catch(e){}
-  }
-  const sfx = {
-    tick:function(){ playTone(880, 0, 0.09, {type:'square', gain:0.14}); },
-    go:function(){
-      playTone(660, 0, 0.14, {type:'triangle', gain:0.2});
-      playTone(990, 0.12, 0.24, {type:'triangle', gain:0.22});
-    },
-    warn:function(){ playTone(740, 0, 0.08, {type:'square', gain:0.12}); },
-    correct:function(){
-      playTone(523.25, 0, 0.12, {type:'sine', gain:0.2});
-      playTone(659.25, 0.1, 0.12, {type:'sine', gain:0.2});
-      playTone(783.99, 0.2, 0.24, {type:'sine', gain:0.22});
-    },
-    wrong:function(){ playTone(220, 0, 0.24, {type:'sawtooth', gain:0.16, slideTo:110}); }
-  };
-
-  /* =========================================================================
-     시작 전 3·2·1 카운트다운 (게임 시작 버튼을 눌렀을 때 한 번 재생됩니다)
-     ========================================================================= */
-  const GO_TEXT = {
-    ko:"시작!", en:"GO!", zh:"开始!", ja:"スタート!", es:"¡YA!", fr:"C'EST PARTI !",
-    de:"LOS!", it:"VIA!", "pt-br":"VAI!", ru:"СТАРТ!", hi:"शुरू!", bn:"শুরু!",
-    id:"MULAI!", vi:"BẮT ĐẦU!", th:"เริ่ม!", tr:"BAŞLA!"
-  };
-  let countdownSid = 0;
-  let lastWarnSecs = null;
-  function runCountdown(onDone){
-    ensureAudio();
-    const sid = ++countdownSid;
-    const seq = ['3','2','1', GO_TEXT[currentLang] || GO_TEXT.en];
-    els.countdown.classList.add('show');
-    let i = 0;
-    function step(){
-      if(sid !== countdownSid) return;
-      els.cdNumber.textContent = seq[i];
-      els.cdNumber.classList.remove('pop');
-      void els.cdNumber.offsetWidth;
-      els.cdNumber.classList.add('pop');
-      if(i < 3){ sfx.tick(); } else { sfx.go(); }
-      i++;
-      if(i < seq.length){
-        setTimeout(step, 700);
-      } else {
-        setTimeout(function(){
-          if(sid !== countdownSid) return;
-          els.countdown.classList.remove('show');
-          onDone();
-        }, 650);
-      }
-    }
-    step();
-  }
-  function cancelCountdown(){
-    countdownSid++;
-    els.countdown.classList.remove('show');
-  }
-
   const els = {
     setup: document.getElementById('setup'),
     startbtn: document.getElementById('startbtn'),
@@ -1394,9 +1273,7 @@
     bannerBtn: document.getElementById('bannerBtn'),
     bannerAuto: document.getElementById('bannerAuto'),
     homebtn: document.getElementById('homebtn'),
-    fsbtn: document.getElementById('fsbtn'),
-    countdown: document.getElementById('countdown'),
-    cdNumber: document.getElementById('cdNumber')
+    fsbtn: document.getElementById('fsbtn')
   };
 
   /* ---------- setup screen: 카테고리 선택 UI ---------- */
@@ -1475,7 +1352,6 @@
     state.roundActive = false;
     state.matchActive = false;
     clearBannerAuto();
-    cancelCountdown();
     els.banner.classList.remove('show');
     els.setup.style.display = 'flex';
     showLangTrigger();
@@ -1516,13 +1392,13 @@
       buildCrowns();
       state.penaltyDuration = 5000;
       state.roundNum = 1;
-      runCountdown(startRoundMatch);
+      startRoundMatch();
     } else {
       els.crownmark.textContent = '⏱';
       els.crownsA.style.display = 'none';
       els.crownsB.style.display = 'none';
       state.penaltyDuration = 3000;
-      runCountdown(startTimeAttack);
+      startTimeAttack();
     }
   });
 
@@ -1717,7 +1593,6 @@
         btnEl.classList.add('correct');
         tm.decided = true;
         revealFull(team, T.tagCorrect);
-        sfx.correct();
         state.score[team] += 1;
         updateScores();
         const sid = state.sessionId;
@@ -1732,7 +1607,6 @@
         btnEl.classList.add('correct');
         tm.decided = true; tm.resolving = true;
         revealFull(team, T.tagCorrect);
-        sfx.correct();
         state.score[team] += 1;
         updateScores();
         setAnswersDisabled(team, true);
@@ -1745,7 +1619,6 @@
   }
   function wrongFlow(team, btnEl, now){
     btnEl.classList.add('wrong');
-    sfx.wrong();
     setTimeout(()=> btnEl.classList.remove('wrong'), 300);
     teamState[team].penaltyUntil = now + state.penaltyDuration;
     setAnswersDisabled(team, true);
@@ -1808,7 +1681,6 @@
     state.roundStart = performance.now();
     state.roundDuration = 30;
     state.roundActive = true;
-    lastWarnSecs = null;
     clearBannerAuto();
     els.banner.classList.remove('show');
   }
@@ -1857,7 +1729,6 @@
   function startTimeAttack(){
     state.matchActive = true;
     state.matchEnd = performance.now() + 60000;
-    lastWarnSecs = null;
     els.roundLabel.textContent = T.taLabel;
     startTeamItem('A');
     startTeamItem('B');
@@ -1923,7 +1794,6 @@
         const secs = Math.ceil(remain);
         els.timerPill.textContent = secs;
         els.timerPill.classList.toggle('warn', secs <= 5);
-        if(secs <= 5 && secs >= 1 && secs !== lastWarnSecs){ sfx.warn(); lastWarnSecs = secs; }
         if(remain <= 0){ endRoundTimeout(); }
       }
     } else {
@@ -1932,7 +1802,6 @@
         const secs = Math.ceil(remain);
         els.timerPill.textContent = secs;
         els.timerPill.classList.toggle('warn', secs <= 10);
-        if(secs <= 5 && secs >= 1 && secs !== lastWarnSecs){ sfx.warn(); lastWarnSecs = secs; }
         if(remain <= 0){ finishTimeAttack(); }
       }
       ['A','B'].forEach(function(team){
