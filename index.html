@@ -12,6 +12,14 @@
 <title id="seoTitleTag">포커스킹 FOCUS KING</title>
 <meta name="description" id="seoDescTag" content="여러 명이 동시에 즐기는 스포트라이트 정답 맞히기 게임, 포커스킹!">
 <meta name="keywords" id="seoKeywordsTag" content="포커스킹,전자칠판 게임,스포트라이트 게임,교육용 게임">
+<meta property="og:title" content="포커스킹 FOCUS KING">
+<meta property="og:description" content="여러 명이 동시에 즐기는 스포트라이트 정답 맞히기 게임, 포커스킹!">
+<meta property="og:image" content="./thumbnail.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="포커스킹 FOCUS KING">
+<meta name="twitter:description" content="여러 명이 동시에 즐기는 스포트라이트 정답 맞히기 게임, 포커스킹!">
+<meta name="twitter:image" content="./thumbnail.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -297,6 +305,16 @@
     box-shadow:0 8px 0 #a3781f, 0 14px 24px rgba(0,0,0,.4);
   }
   #startbtn:active{transform:translateY(6px); box-shadow:0 2px 0 #a3781f;}
+
+  /* 게임 시작 버튼 아래 - 킹수학 다른 게임 고르기 링크 */
+  #otherGamesLink{
+    display:inline-block; margin-top:-4px;
+    font-family:'Jua'; font-size:clamp(11px,1.4vw,14px);
+    color:rgba(255,255,255,.6); text-decoration:none;
+    border-bottom:1px dotted rgba(255,255,255,.35);
+    padding-bottom:1px; transition:color .15s, border-color .15s;
+  }
+  #otherGamesLink:hover{color:var(--gold); border-bottom-color:var(--gold);}
 
   /* ---------- round / match end overlay ---------- */
   #banner{
@@ -597,6 +615,7 @@
         </div>
 
         <button id="startbtn">게임 시작</button>
+        <a id="otherGamesLink" href="https://킹수학.com" target="_self" rel="noopener">(다른 게임 고르기)</a>
       </div>
     </div>
 
@@ -888,6 +907,16 @@
     {code:"tr", country:"tr", native:"Türkçe", en:"Turkish"}
   ];
   const LM_SUPPORTED = LM_LANGS.map(function(l){ return l.code; });
+
+  /* 게임 시작 버튼 아래 '다른 게임 고르기' 링크 문구 (16개 언어) */
+  const OTHER_GAMES_TXT = {
+    ko:"(다른 게임 고르기)",  en:"(Pick another game)",   zh:"(选择其他游戏)",
+    ja:"(ほかのゲームを選ぶ)", es:"(Elegir otro juego)",   fr:"(Choisir un autre jeu)",
+    de:"(Anderes Spiel wählen)", it:"(Scegli un altro gioco)", pt:"(Escolher outro jogo)",
+    ru:"(Выбрать другую игру)",  id:"(Pilih game lain)",    vi:"(Chọn trò chơi khác)",
+    th:"(เลือกเกมอื่น)",        hi:"(दूसरा गेम चुनें)",       bn:"(অন্য গেম বেছে নিন)",
+    tr:"(Başka oyun seç)"
+  };
 
   const I18N = {
     ko: {
@@ -2151,6 +2180,8 @@
     if(diffHardBtn) diffHardBtn.textContent = T.diffHard;
 
     els.startbtn.textContent = T.start;
+    const ogLink = document.getElementById('otherGamesLink');
+    if(ogLink) ogLink.textContent = (OTHER_GAMES_TXT[code] || OTHER_GAMES_TXT.en);
     els.homebtn.title = T.homeTip;
     els.fsbtn.title = T.fsTip;
     document.querySelectorAll('.penalty .small').forEach(function(el){ el.textContent = T.penalty; });
